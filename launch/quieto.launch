@@ -1,0 +1,108 @@
+<launch>
+    <node name="converter" pkg="recibe_datos" type="separaEstados.py"
+          args="-i /robot/joint_states
+          -l left
+          -o s0 s1 e0 e1 w0 w2"
+          output="screen" ns="input_converter"/>
+
+    <node name="setpoints0" pkg="recibe_datos" type="setpoint.py"
+          args="-sp 0" ns="s0" output="screen" />
+
+    <node name="controller" pkg="pid" type="controller" ns="s0" output="screen">
+        <param name="Kp" value="10.0" />
+        <param name="Ki" value="0.8" />
+        <param name="Kd" value="0.24" />
+        <param name="upper_limit" value="50" />
+        <param name="lower_limit" value="-50" />
+        <param name="windup_limit" value="10" />
+        <param name="diagnostic_period" value="0.25" />
+        <param name="max_loop_frequency" value="100.0" />
+        <param name="min_loop_frequency" value="100.0" />
+        <remap from="state" to="/input_converter/s0" />
+    </node>
+
+    <node name="setpoints1" pkg="recibe_datos" type="setpoint.py"
+          args="-sp 0" ns="s1" output="screen" />
+
+    <node name="controller" pkg="pid" type="controller" ns="s1" output="screen">
+        <param name="Kp" value="42.0" />
+        <param name="Ki" value="2.1" />
+        <param name="Kd" value="0.13" />
+        <param name="upper_limit" value="50" />
+        <param name="lower_limit" value="-50" />
+        <param name="windup_limit" value="10" />
+        <param name="diagnostic_period" value="0.25" />
+        <param name="max_loop_frequency" value="100.0" />
+        <param name="min_loop_frequency" value="100.0" />
+        <remap from="state" to="/input_converter/s1" />
+    </node>
+
+    <node name="setpointe0" pkg="recibe_datos" type="setpoint.py"
+          args="-sp 0" ns="e0" output="screen" />
+
+    <node name="controller" pkg="pid" type="controller" ns="e0" output="screen">
+        <param name="Kp" value="10.0" />
+        <param name="Ki" value="0.1" />
+        <param name="Kd" value="1.0" />
+        <param name="upper_limit" value="50" />
+        <param name="lower_limit" value="-50" />
+        <param name="windup_limit" value="10" />
+        <param name="diagnostic_period" value="0.25" />
+        <param name="max_loop_frequency" value="100.0" />
+        <param name="min_loop_frequency" value="100.0" />
+        <remap from="state" to="/input_converter/e0" />
+    </node>
+
+    <node name="setpointe1" pkg="recibe_datos" type="setpoint.py"
+          args="-sp 0" ns="e1" output="screen" />
+
+    <node name="controller" pkg="pid" type="controller" ns="e1" output="screen">
+        <param name="Kp" value="10.0" />
+        <param name="Ki" value="0.1" />
+        <param name="Kd" value="1.0" />
+        <param name="upper_limit" value="50" />
+        <param name="lower_limit" value="-50" />
+        <param name="windup_limit" value="10" />
+        <param name="diagnostic_period" value="0.25" />
+        <param name="max_loop_frequency" value="100.0" />
+        <param name="min_loop_frequency" value="100.0" />
+        <remap from="state" to="/input_converter/e1" />
+    </node>
+
+    <node name="setpointw0" pkg="recibe_datos" type="setpoint.py"
+          args="-sp 0" ns="w0" output="screen" />
+
+    <node name="controller" pkg="pid" type="controller" ns="w0" output="screen">
+        <param name="Kp" value="0.17" />
+        <param name="Ki" value="2.37" />
+        <param name="Kd" value="0.11" />
+        <param name="upper_limit" value="15" />
+        <param name="lower_limit" value="-15" />
+        <param name="windup_limit" value="10" />
+        <param name="diagnostic_period" value="0.25" />
+        <param name="max_loop_frequency" value="100.0" />
+        <param name="min_loop_frequency" value="100.0" />
+        <remap from="state" to="/input_converter/w0" />
+    </node>
+
+    <node name="setpointw2" pkg="recibe_datos" type="setpoint.py"
+          args="-sp 0" ns="w2" output="screen" />
+
+    <node name="controller" pkg="pid" type="controller" ns="w2" output="screen">
+        <param name="Kp" value="10.0" />
+        <param name="Ki" value="0.1" />
+        <param name="Kd" value="0.5" />
+        <param name="upper_limit" value="15" />
+        <param name="lower_limit" value="-15" />
+        <param name="windup_limit" value="10" />
+        <param name="diagnostic_period" value="0.25" />
+        <param name="max_loop_frequency" value="100.0" />
+        <param name="min_loop_frequency" value="100.0" />
+        <remap from="state" to="/input_converter/w2" />
+    </node>
+
+    <node name="converter" pkg="recibe_datos" type="juntaEstados.py"
+          args="-i /s0/control_effort /s1/control_effort
+          /e0/control_effort /e1/control_effort
+          /w0/control_effort /w2/control_effort" ns="output_converter" output="screen" />
+</launch>
