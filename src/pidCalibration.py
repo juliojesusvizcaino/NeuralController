@@ -30,7 +30,9 @@ def calculate_error(params):
     error = list()
     for time in xrange(2500):
         if not rospy.is_shutdown():
-            torque = {name: pid_controller[name].compute_output(value) for name, value in limb.joint_angles}
+            print limb.joint_angles()
+            torque = {name: pid_controller[name].compute_output(value)
+                      for (name, value) in limb.joint_angles().items()}
             error.append(np.sum(np.abs(limb.joint_angles().values())))
             limb.set_joint_torques(torque)
             gravity_pub.publish()
@@ -46,7 +48,7 @@ def neighbour(x):
     :return: Neighbour
     :rtype: Dictionary
     """
-    y = {name: value + uniform(-1, 1) for name, value in x}
+    y = {name: value + uniform(-1, 1) for name, value in x.items()}
     return y
 
 
