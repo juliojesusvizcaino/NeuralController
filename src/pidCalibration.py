@@ -21,7 +21,7 @@ def calculate_error(params):
     :return: mean absolute error in 5 seconds action
     """
     print params
-    init_pos = {'left_s0': -1.7, 'left_s1': 1.0, 'left_e0': -3.0, 'left_e1': 2.5,
+    init_pos = {'left_s0': -1.7, 'left_s1': 1.0, 'left_e0': 3.0, 'left_e1': 2.5,
                 'left_w0': 3.0, 'left_w1': 2.0, 'left_w2': -3.0}
     gravity_pub = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty, queue_size=1)
     limb = Limb('left')
@@ -70,13 +70,13 @@ def acceptance(error, t):
 
 def stop_condition(t):
     """
-    Stop optimization when temperature falls to 0.001
+    Stop optimization when temperature falls to 0.0001
     :param t: Temperature of simulated annealing
     :type t: float
-    :return: True if temperate falls until 0.001
+    :return: True if temperate falls until 0.0001
     :rtype: Boolean
     """
-    return True if t < 0.001 else False
+    return True if t < 0.0001 else False
 
 
 def main():
