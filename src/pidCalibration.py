@@ -1,49 +1,64 @@
 #!/usr/bin/env python
+# -*- coding: UTF-8 -*-
 
-import math
+from math import exp
+from random import uniform
+
 import rospy
 from std_msgs.msg import Empty
-from baxter_core_msgs.msg import JointCommand
-from sensor_msgs.msg import JointState
+from baxter_control import PID
+from baxter_interface import Limb
+import numpy as np
 
-# Use coordinate descent in order to get the optimized PID parameters that control each joint of the arm
+from simulatedAnnealing import simulated_annealing
 
-class PidCalibration(object):
-    def __init__(self):
-        pub = rospy.Publisher('/robot/limb/left/joint_command', JointCommand)
-        gravitySupress = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty)
-        rospy.Subscriber('/robot/joint_states', JointState, self.stateReceiver)
-        self.send_msg = JointCommand
-        self.send_msg.names = ['s0', 's1', 'e0', 'e1', 'w0', 'w1', 'w2']
-        for name in self.send_msg.names:
-            self.send_msg.names = 'left_' + name
 
-        self.send_msg.mode = JointCommand.POSITION_MODE
-        for i in range(len(self.send_msg.names)):
-            self.send_msg.command[i] = 0
+def mae(values):
+    return np.mean(np.absolute(values))
 
-        # todo iniciar parametros pid
-        self.param = {self.send_msg.names[0]: [10,0.8,0.24], self.send_msg.names[1]: [42,2.1,0.13],
-                      self.send_msg.names[2]: [10,0.1,1], self.send_msg.names[3]: [16,2.1,0.26],
-                      self.send_msg.names[4]: [2,0.1,0.5], self.send_msg.names[5]: [0,0,0], self.send_msg.names[6]: [0,0,0]}
 
-    def run(self, param):
+def calculate_error(params):
+    init_pos = {'left_s0': -1.7, 'left_s1': 1.0, 'left_e0': -3.0, 'left_e1': 2.5,
+                'left_w0': 3.0, 'left_w1': 2.0, 'left_w2': -3.0}
+    gravity_pub = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty)
+    limb = Limb('left')
+    limb.move_to_joint_positions(init_pos)
+    pid_controller = {name: PID(params[name]) for name in params}
+    r = rospy.Rate(500)
+    error = list()
+    for time in xrange(2500):
+        if not rospy.is_shutdown():
+            torque = {name: pid_controller[name].compute_output(value) for name, value in limb.joint_angles}
+            error.append(np.sum(np.abs(limb.joint_angles().values())))
+            limb.set_joint_torques(torque)
+            gravity_pub.publish()
+            r.sleep()
+    return np.sum(error)
 
-        return error
 
-    def coordinateDescent(self, threshold = 0.001):
-        best_error = self.run(self.param)
+def neighbour(x):
+    y = {name: value + uniform(-1, 1) for name, value in x}
+    return y
 
-        while best_error > threshold:
-            for joint in self.send_msg.names:
-                for param in self.param[joint]:
-                    
 
-    def stateReceiver(data):
+def acceptance(error, t):
+    if error > 0:
+        return 1.0
+    else:
+        return exp(error/t)
+
+
+def stop_condition(t):
+    return True if t < 0.001 else False
 
 
 def main():
     rospy.init_node('pid_calibration')
+    init_pos = [-10, 5]
+    init_error = calculate_error(init_pos)
+    best = simulated_annealing(init_pos, init_error, calculate_error, neighbour, acceptance,
+                               stop_condition, 100.0, lambda x: 0.95*x)
+    print best
 
 if __name__ == '__main__':
     try:
