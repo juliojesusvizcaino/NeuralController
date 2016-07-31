@@ -20,6 +20,7 @@ def calculate_error(params):
     :type params: Dictionary {joint_name: value}
     :return: mean absolute error in 5 seconds action
     """
+    print params
     init_pos = {'left_s0': -1.7, 'left_s1': 1.0, 'left_e0': -3.0, 'left_e1': 2.5,
                 'left_w0': 3.0, 'left_w1': 2.0, 'left_w2': -3.0}
     gravity_pub = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty)
@@ -30,7 +31,6 @@ def calculate_error(params):
     error = list()
     for time in xrange(2500):
         if not rospy.is_shutdown():
-            print limb.joint_angles()
             torque = {name: pid_controller[name].compute_output(value)
                       for (name, value) in limb.joint_angles().items()}
             error.append(np.sum(np.abs(limb.joint_angles().values())))
