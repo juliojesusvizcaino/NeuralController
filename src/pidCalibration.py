@@ -49,6 +49,7 @@ def neighbour(x):
     :rtype: Dictionary
     """
     y = {name: value + uniform(-1, 1) for name, value in x.items()}
+    y = {name: 0.0 if value < 0 else value for name, value in y.items()}
     return y
 
 
