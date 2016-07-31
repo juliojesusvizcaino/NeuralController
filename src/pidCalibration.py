@@ -23,7 +23,7 @@ def calculate_error(params):
     print params
     init_pos = {'left_s0': -1.7, 'left_s1': 1.0, 'left_e0': -3.0, 'left_e1': 2.5,
                 'left_w0': 3.0, 'left_w1': 2.0, 'left_w2': -3.0}
-    gravity_pub = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty)
+    gravity_pub = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty, queue_size=1)
     limb = Limb('left')
     limb.move_to_joint_positions(init_pos)
     pid_controller = {name: PID(params[name]) for name in params}
