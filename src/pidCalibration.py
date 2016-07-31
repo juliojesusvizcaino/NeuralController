@@ -7,7 +7,7 @@ from random import uniform
 import rospy
 from std_msgs.msg import Empty
 from baxter_control import PID
-from baxter_interface import Limb
+from baxter_interface import Limb, RobotEnable
 import numpy as np
 
 from simulatedAnnealing import simulated_annealing
@@ -26,7 +26,7 @@ def calculate_error(params):
     gravity_pub = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty, queue_size=1)
     limb = Limb('left')
     limb.move_to_joint_positions(init_pos)
-    pid_controller = {name: PID(params[name]) for name in params}
+    pid_controller = {name: PID(**value) for name, value in params.items()}
     r = rospy.Rate(500)
     error = list()
     for time in xrange(2500):
@@ -48,8 +48,10 @@ def neighbour(x):
     :return: Neighbour
     :rtype: Dictionary
     """
-    y = {name: value + uniform(-1, 1) for name, value in x.items()}
-    y = {name: 0.0 if value < 0 else value for name, value in y.items()}
+    # For each name (s0, s1, e0...), alter each component (kp, ki, kd)
+    y = {name: {kname: value + uniform(-1, 1) for kname, value in values} for name, values in x.items()}
+    # For each name and component, check it not to be less than 0
+    y = {name: {kname: 0 if value < 0 else value for kname, value in values} for name, values in y.items()}
     return y
 
 
@@ -83,6 +85,8 @@ def main():
     :return:
     """
     rospy.init_node('pid_calibration')
+    enabler = RobotEnable()
+    enabler.enable()
     limb = Limb('left')
     init_params = {name: {'kp': 0.0, 'ki': 0.0, 'kd': 0.0} for name in limb.joint_names()}
     init_error = calculate_error(init_params)
