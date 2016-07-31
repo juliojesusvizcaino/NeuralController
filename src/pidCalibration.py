@@ -54,9 +54,10 @@ def stop_condition(t):
 
 def main():
     rospy.init_node('pid_calibration')
-    init_pos = [-10, 5]
-    init_error = calculate_error(init_pos)
-    best = simulated_annealing(init_pos, init_error, calculate_error, neighbour, acceptance,
+    init_param = {'left_s0': 0.0, 'left_s1': 0.0, 'left_e0': 0.0, 'left_e1': 0.0,
+                'left_w0': 0.0, 'left_w1': 0.0, 'left_w2': 0.0}
+    init_error = calculate_error(init_param)
+    best = simulated_annealing(init_param, init_error, calculate_error, neighbour, acceptance,
                                stop_condition, 100.0, lambda x: 0.95*x)
     print best
 
