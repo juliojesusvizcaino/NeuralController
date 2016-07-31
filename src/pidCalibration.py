@@ -83,10 +83,10 @@ def main():
     :return:
     """
     rospy.init_node('pid_calibration')
-    init_param = {'left_s0': 0.0, 'left_s1': 0.0, 'left_e0': 0.0, 'left_e1': 0.0,
-                'left_w0': 0.0, 'left_w1': 0.0, 'left_w2': 0.0}
-    init_error = calculate_error(init_param)
-    best = simulated_annealing(init_param, init_error, calculate_error, neighbour, acceptance,
+    limb = Limb('left')
+    init_params = {name: {'kp': 0.0, 'ki': 0.0, 'kd': 0.0} for name in limb.joint_names()}
+    init_error = calculate_error(init_params)
+    best = simulated_annealing(init_params, init_error, calculate_error, neighbour, acceptance,
                                stop_condition, 100.0, lambda x: 0.95*x)
     print best
 
