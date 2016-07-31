@@ -14,14 +14,14 @@ def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_con
     else:
         new, new_error = update_neighbour(init, init_error, neighbour, error, acceptance, init_temp)
         new_temp = temperature_update(init_temp)
-        return simulated_annealing(new, error, neighbour, acceptance, stop_condition, new_temp, temperature_update)
+        return simulated_annealing(new, new_error, error, neighbour, acceptance,
+                                   stop_condition, new_temp, temperature_update)
 
 
 def update_neighbour(init, init_error, neighbour, error, acceptance, temp):
     neighbour_test = neighbour(init)
     error_test = error(neighbour_test)
-    if acceptance(error_test - init_error, temp) > random():
+    if acceptance(init_error - error_test, temp) > random():
         return neighbour_test, error_test
     else:
         return init, init_error
-
