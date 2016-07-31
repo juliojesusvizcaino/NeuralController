@@ -13,11 +13,13 @@ import numpy as np
 from simulatedAnnealing import simulated_annealing
 
 
-def mae(values):
-    return np.mean(np.absolute(values))
-
-
 def calculate_error(params):
+    """
+    Calculate error of given parameters
+    :param params: Parameters
+    :type params: Dictionary {joint_name: value}
+    :return: mean absolute error in 5 seconds action
+    """
     init_pos = {'left_s0': -1.7, 'left_s1': 1.0, 'left_e0': -3.0, 'left_e1': 2.5,
                 'left_w0': 3.0, 'left_w1': 2.0, 'left_w2': -3.0}
     gravity_pub = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty)
@@ -37,11 +39,24 @@ def calculate_error(params):
 
 
 def neighbour(x):
+    """
+    Give a neighbour of received parameter
+    :param x: Parameter
+    :type x: Dictionary {joint_name: value}
+    :return: Neighbour
+    :rtype: Dictionary
+    """
     y = {name: value + uniform(-1, 1) for name, value in x}
     return y
 
 
 def acceptance(error, t):
+    """
+    Give probability of accepting a new parameter
+    :param error: Difference of current error and previous error
+    :param t: Temperature
+    :return: Probability of acceptance
+    """
     if error > 0:
         return 1.0
     else:
@@ -49,10 +64,21 @@ def acceptance(error, t):
 
 
 def stop_condition(t):
+    """
+    Stop optimization when temperature falls to 0.001
+    :param t: Temperature of simulated annealing
+    :type t: float
+    :return: True if temperate falls until 0.001
+    :rtype: Boolean
+    """
     return True if t < 0.001 else False
 
 
 def main():
+    """
+    Calculate best PID constans using simulated annealing
+    :return:
+    """
     rospy.init_node('pid_calibration')
     init_param = {'left_s0': 0.0, 'left_s1': 0.0, 'left_e0': 0.0, 'left_e1': 0.0,
                 'left_w0': 0.0, 'left_w1': 0.0, 'left_w2': 0.0}
