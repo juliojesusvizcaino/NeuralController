@@ -49,9 +49,9 @@ def neighbour(x):
     :rtype: Dictionary
     """
     # For each name (s0, s1, e0...), alter each component (kp, ki, kd)
-    y = {name: {kname: value + uniform(-1, 1) for kname, value in values} for name, values in x.items()}
+    y = {name: {kname: value + uniform(-1, 1) for kname, value in values.items()} for name, values in x.items()}
     # For each name and component, check it not to be less than 0
-    y = {name: {kname: 0 if value < 0 else value for kname, value in values} for name, values in y.items()}
+    y = {name: {kname: 0 if value < 0 else value for kname, value in values.items()} for name, values in y.items()}
     return y
 
 
