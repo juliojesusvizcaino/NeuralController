@@ -63,6 +63,7 @@ class SweepTorque(object):
 
     def sweep(self):
         efforts = dict()
+        r = rospy.Rate(500)
         for torque in self.torque_range:
             with open('%s_%s_%.3f.csv' % (self.file_name, self.limb, torque), 'wb') as f:
                 writer = csv.DictWriter(f, self.limb.field_names())
@@ -74,6 +75,7 @@ class SweepTorque(object):
                     self.limb.set_joint_torques(efforts)
                     data = self.limb.get_csv_data()
                     writer.writerows(data)
+                    r.sleep()
 
     def _get_pid_torques(self):
         efforts = dict()
