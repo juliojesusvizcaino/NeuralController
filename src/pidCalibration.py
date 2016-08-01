@@ -88,7 +88,13 @@ def main():
     enabler = RobotEnable()
     enabler.enable()
     limb = Limb('left')
-    init_params = {name: {'kp': 0.0, 'ki': 0.0, 'kd': 0.0} for name in limb.joint_names()}
+    init_params = {'left_s0': {'kp': 80.0, 'ki': 0.29, 'kd': 1.4},
+                   'left_s1': {'kp': 100.0, 'ki': 1.0, 'kd': 1.0},
+                   'left_e0': {'kp': 10.0, 'ki': 2.1, 'kd': 0.12},
+                   'left_e1': {'kp': 16.0, 'ki': 2.1, 'kd': 0.26},
+                   'left_w0': {'kp': 2.0, 'ki': 0.1, 'kd': 0.5},
+                   'left_w1': {'kp': 1.9, 'ki': 1.71, 'kd': 0.15},
+                   'left_w2': {'kp': 1.8, 'ki': 2.31, 'kd': 0.11}}
     init_error = calculate_error(init_params)
     best = simulated_annealing(init_params, init_error, calculate_error, neighbour, acceptance,
                                stop_condition, 100.0, lambda x: 0.95*x)
