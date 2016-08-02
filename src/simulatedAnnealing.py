@@ -3,12 +3,12 @@
 
 # todo guardar la mejor posición
 # todo hacer que stop_condition dependa de parámetros que se le pasan a la propia función
+from copy import deepcopy
 from random import random
 
 
 def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_condition,
                         init_temp, temperature_update=lambda x: x * 0.95):
-    """Búsqueda del mínimo global usando el algoritmo simulated annealing"""
     if stop_condition(init_temp):
         return init
     else:
@@ -19,9 +19,10 @@ def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_con
 
 
 def update_neighbour(init, init_error, neighbour, error, acceptance, temp):
-    neighbour_test = neighbour(init)
-    error_test = error(neighbour_test)
-    if acceptance(init_error - error_test, temp) > random():
-        return neighbour_test, error_test
-    else:
-        return init, init_error
+    final_params = deepcopy(init)
+    final_error = init_error
+    for new_params in neighbour(final_params):
+        new_error = error(new_params)
+        if acceptance(final_error - new_error, temp) > random():
+            final_params, final_error = new_params, new_error
+    return final_params, final_error
