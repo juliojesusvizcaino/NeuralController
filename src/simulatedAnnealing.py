@@ -1,14 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# todo guardar la mejor posición
-# todo hacer que stop_condition dependa de parámetros que se le pasan a la propia función
+
 from copy import deepcopy
 from random import random
 
 
 def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_condition,
-                        init_temp, temperature_update=lambda x: x * 0.95):
+                        init_temp, temperature_update=lambda x: x * 0.95, callback=None):
     """
     Global minimum search using simulated annealing
 
@@ -28,15 +27,21 @@ def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_con
     :type init_temp: float
     :param temperature_update: Way of update temperature
     :type temperature_update: function new_temp = temperature_update(temp)
+    :param callback: Function to be called when program is stopped
+    :type callback: function None = callback(params, error_value, temperature)
     :return: Optimum parameters
     """
     if stop_condition(init_temp):
         return init
     else:
-        new, new_error = update_neighbour(init, init_error, neighbour, error, acceptance, init_temp)
-        new_temp = temperature_update(init_temp)
-        return simulated_annealing(new, new_error, error, neighbour, acceptance,
+        try:
+            new, new_error = update_neighbour(init, init_error, neighbour, error, acceptance, init_temp)
+            new_temp = temperature_update(init_temp)
+            return simulated_annealing(new, new_error, error, neighbour, acceptance,
                                    stop_condition, new_temp, temperature_update)
+        except Exception:
+            if callback is not None:
+                callback(init, init_error, init_temp)
 
 
 def update_neighbour(init, init_error, neighbour, error, acceptance, temp):
