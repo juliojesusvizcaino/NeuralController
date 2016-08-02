@@ -13,7 +13,7 @@ def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_con
     Global minimum search using simulated annealing
 
     :param init: Initial parameters
-    :type init: whatever
+    :type init: dictionary
     :param init_error: Initial error
     :type init_error: float
     :param error: Error function
@@ -42,7 +42,9 @@ def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_con
 def update_neighbour(init, init_error, neighbour, error, acceptance, temp):
     final_params = deepcopy(init)
     final_error = init_error
-    for new_params in neighbour(final_params):
+    for key, value in neighbour(final_params):
+        new_params = deepcopy(final_params)
+        new_params[key] = value
         new_error = error(new_params)
         if acceptance(final_error - new_error, temp) > random():
             final_params, final_error = new_params, new_error
