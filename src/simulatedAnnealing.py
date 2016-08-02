@@ -42,7 +42,7 @@ def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_con
 def update_neighbour(init, init_error, neighbour, error, acceptance, temp):
     final_params = deepcopy(init)
     final_error = init_error
-    for key, value in neighbour(final_params):
+    for key, value in neighbour(final_params).items():
         new_params = deepcopy(final_params)
         new_params[key] = value
         new_error = error(new_params)
