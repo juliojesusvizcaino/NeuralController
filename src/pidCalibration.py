@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-
+from csv import DictWriter
 from math import exp
 from random import uniform
 
@@ -79,6 +79,25 @@ def stop_condition(t):
     return True if t < 0.0001 else False
 
 
+def params2dict(params):
+    values = dict()
+    for joint, constants in params.items():
+        values.update({joint+'_'+constant_name: constant for constant_name, constant in constants.items()})
+
+    return values
+
+
+def callback(params, error, temperature):
+    csvformat = params2dict(params)
+    csvformat['error'] = error
+    csvformat['temperature'] = temperature
+    with open("simAnnPIDprogress.csv", 'wb') as f:
+        writer = DictWriter(f, csvformat.keys())
+        writer.writeheader()
+        writer.writerow(csvformat)
+    return
+
+
 def main():
     """
     Calculate best PID constans using simulated annealing
@@ -97,7 +116,7 @@ def main():
                    'left_w2': {'kp': 1.8, 'ki': 2.31, 'kd': 0.11}}
     init_error = calculate_error(init_params)
     best = simulated_annealing(init_params, init_error, calculate_error, neighbour, acceptance,
-                               stop_condition, 100.0, lambda x: 0.95*x)
+                               stop_condition, 100.0, temperature_update=lambda x: 0.95*x, callback=callback)
     print best
 
 if __name__ == '__main__':
