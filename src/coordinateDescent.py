@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
+from csv import DictWriter
+
 import rospy
 
-from pidCalibration import calculate_error
+from pidCalibration import calculate_error, params2dict
 from baxter_interface import Limb, RobotEnable
 
 
@@ -43,6 +45,17 @@ def stop_condition(new, old):
     return new == old
 
 
+def callback(params, error):
+    csvformat = params2dict(params)
+    csvformat['error'] = error
+    with open('coordDescentPIDprogress.csv', 'wb') as f:
+        writer = DictWriter(f, csvformat.keys())
+        writer.writeheader()
+        writer.writerow(csvformat)
+
+    return
+
+
 def main():
     rospy.init_node('pid_calibration')
     enabler = RobotEnable()
@@ -51,7 +64,7 @@ def main():
     init_params = {name: {'kp': 0.0, 'ki': 0.0, 'kd': 0.0} for name in limb.joint_names()}
     init_error = calculate_error(init_params)
     change = {name: {'kp': 1.0, 'ki': 0.1, 'kd': 0.1} for name in limb.joint_names()}
-    coordinate_descent(init_params, init_error, calculate_error, stop_condition, change)
+    coordinate_descent(init_params, init_error, calculate_error, stop_condition, change, callback=callback)
 
 
 if __name__ == "__main__":
