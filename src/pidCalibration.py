@@ -78,7 +78,7 @@ def stop_condition(t):
     :return: True if temperate falls until 0.0001
     :rtype: Boolean
     """
-    return True if t < 0.0001 else False
+    return True if t < 0.001 else False
 
 
 def params2dict(params):
