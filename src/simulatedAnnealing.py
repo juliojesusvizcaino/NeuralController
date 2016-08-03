@@ -31,17 +31,17 @@ def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_con
     :type callback: function None = callback(params, error_value, temperature)
     :return: Optimum parameters
     """
-    if stop_condition(init_temp):
-        return init
-    else:
-        try:
-            new, new_error = update_neighbour(init, init_error, neighbour, error, acceptance, init_temp)
-            new_temp = temperature_update(init_temp)
-            return simulated_annealing(new, new_error, error, neighbour, acceptance,
-                                   stop_condition, new_temp, temperature_update)
-        except Exception:
-            if callback is not None:
-                callback(init, init_error, init_temp)
+    try:
+        if stop_condition(init_temp):
+            return init
+        else:
+                new, new_error = update_neighbour(init, init_error, neighbour, error, acceptance, init_temp)
+                new_temp = temperature_update(init_temp)
+                return simulated_annealing(new, new_error, error, neighbour, acceptance,
+                                       stop_condition, new_temp, temperature_update)
+    except Exception:
+        if callback is not None:
+            callback(init, init_error, init_temp)
 
 
 def update_neighbour(init, init_error, neighbour, error, acceptance, temp):
