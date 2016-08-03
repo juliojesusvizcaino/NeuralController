@@ -25,6 +25,7 @@ def calculate_error(params):
                 'left_w0': 3.0, 'left_w1': 2.0, 'left_w2': -3.0}
     gravity_pub = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty, queue_size=1)
     limb = Limb('left')
+    limb.set_joint_position_speed(1.0)
     limb.move_to_joint_positions(init_pos)
     pid_controller = {name: PID(**value) for name, value in params.items()}
     r = rospy.Rate(500)
