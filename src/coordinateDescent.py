@@ -7,11 +7,15 @@ from baxter_interface import Limb, RobotEnable
 
 
 def coordinate_descent(init, init_error, error, stop_condition, change):
-    new, new_error, new_change = update_parameters(init, error, change, init_error)
-    if stop_condition(new, init):
-        return new
-    else:
-        return coordinate_descent(new, new_error, error, stop_condition, new_change)
+    new, new_error, new_change = update_parameters(init, error, change, init_error, callback=None)
+    try:
+        if stop_condition(new, init):
+            return new
+        else:
+            return coordinate_descent(new, new_error, error, stop_condition, new_change)
+    except Exception:
+        if callback is not None:
+            callback(new, new_error)
 
 
 def update_parameters(init, error, change, old_error):
