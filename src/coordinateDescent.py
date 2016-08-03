@@ -6,8 +6,8 @@ from pidCalibration import calculate_error
 from baxter_interface import Limb, RobotEnable
 
 
-def coordinate_descent(init, init_error, error, stop_condition, change):
-    new, new_error, new_change = update_parameters(init, error, change, init_error, callback=None)
+def coordinate_descent(init, init_error, error, stop_condition, change, callback=None):
+    new, new_error, new_change = update_parameters(init, error, change, init_error)
     try:
         if stop_condition(new, init):
             return new
