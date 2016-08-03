@@ -80,6 +80,13 @@ def stop_condition(t):
 
 
 def params2dict(params):
+    """
+    Transform dictionary of dictionaries into single dictionary
+    :param params: Parameters to transform
+    :type params: dictionary
+    :return: Parameters transformed
+    :rtype: dictionary
+    """
     values = dict()
     for joint, constants in params.items():
         values.update({joint+'_'+constant_name: constant for constant_name, constant in constants.items()})
@@ -88,6 +95,17 @@ def params2dict(params):
 
 
 def callback(params, error, temperature):
+    """
+    Save parameters, error and temperature into a csv file if an Exception is raised
+    :param params: Parameters to save
+    :type params: dictionary
+    :param error: Error to save
+    :type error: float
+    :param temperature: Temperature to save
+    :type temperature: float
+    :return: Nothing
+    :rtype: None
+    """
     csvformat = params2dict(params)
     csvformat['error'] = error
     csvformat['temperature'] = temperature
