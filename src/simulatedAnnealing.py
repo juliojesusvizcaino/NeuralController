@@ -28,7 +28,7 @@ def simulated_annealing(init, init_error, error, neighbour, acceptance, stop_con
     :param temperature_update: Way of update temperature
     :type temperature_update: function new_temp = temperature_update(temp)
     :param callback: Function to be called when program is stopped
-    :type callback: function None = callback(params, error_value, temperature)
+    :type callback: function None = csv_save(params, error_value, temperature)
     :return: Optimum parameters
     """
     try:

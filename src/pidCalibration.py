@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-from csv import DictWriter
+from csv import DictWriter, DictReader
 from math import exp
 from random import uniform
 
@@ -10,6 +10,9 @@ from baxter_control import PID
 from baxter_interface import Limb, RobotEnable
 import numpy as np
 
+from std_msgs.msg import UInt16
+
+from getData import LimbExtend
 from simulatedAnnealing import simulated_annealing
 
 
@@ -18,27 +21,35 @@ def calculate_error(params):
     Calculate error of given parameters
     :param params: Parameters
     :type params: Dictionary {joint_name: value}
-    :return: mean absolute error in 5 seconds action
+    :return: mean absolute error in 15 seconds action
     """
     print params
-    init_pos = {'left_s0': -1.7, 'left_s1': 1.0, 'left_e0': 3.0, 'left_e1': 2.5,
+    init_pos = {'left_s0': -1.0, 'left_s1': 1.0, 'left_e0': 3.0, 'left_e1': 2.5,
                 'left_w0': 3.0, 'left_w1': 2.0, 'left_w2': -3.0}
     gravity_pub = rospy.Publisher('/robot/limb/left/suppress_gravity_compensation', Empty, queue_size=1)
-    limb = Limb('left')
+    rate_pub = rospy.Publisher('/robot/joint_state_publish_rate', UInt16, queue_size=1)
+    limb = LimbExtend('left')
     limb.set_joint_position_speed(1.0)
     limb.move_to_joint_positions(init_pos)
     pid_controller = {name: PID(**value) for name, value in params.items()}
-    r = rospy.Rate(500)
-    error = list()
-    for time in xrange(2500):
+    rate = 500
+    r = rospy.Rate(rate)
+    errors = {joint: 0 for joint in limb.joint_names()}
+    for time in xrange(15*rate):
         if not rospy.is_shutdown():
-            torque = {name: pid_controller[name].compute_output(value)
+            torque = {name: pid_controller[name].compute_output(-value)
                       for (name, value) in limb.joint_angles().items()}
-            error.append(np.sum(np.abs(limb.joint_angles().values())))
+            errors.update({joint: time/rate * joint_error**2 + errors[joint]
+                           for joint, joint_error in limb.joint_angles().items()})
             limb.set_joint_torques(torque)
             gravity_pub.publish()
+            rate_pub.publish(rate)
             r.sleep()
-    return np.sum(error)
+    return errors
+
+
+def get_error(params, joint):
+    return calculate_error(params)[joint[0]]
 
 
 def neighbour(x):
@@ -96,6 +107,18 @@ def params2dict(params):
 
     return values
 
+def dict2params(dictionary):
+    params = dict()
+    joints = ['s0', 's1', 'e0', 'e1', 'w0', 'w1', 'w2']
+    constants = ['kp', 'ki', 'kd']
+    for joint in joints:
+        for constant in constants:
+            for name, value in dictionary.items():
+                if joint in name and constant in name:
+                    params[joint][constant] = value
+
+    return params
+
 
 def callback(params, error, temperature):
     """
@@ -117,6 +140,24 @@ def callback(params, error, temperature):
         writer.writeheader()
         writer.writerow(csvformat)
     return
+
+
+def loadcsv():
+    fieldnames = ['left_s0_kp', 'left_s0_ki', 'left_s0_kd',
+                  'left_s1_kp', 'left_s1_ki', 'left_s1_kd',
+                  'left_e0_kp', 'left_e0_ki', 'left_e0_kd',
+                  'left_e1_kp', 'left_e1_ki', 'left_e1_kd',
+                  'left_w0_kp', 'left_w0_ki', 'left_w0_kd',
+                  'left_w1_kp', 'left_w1_ki', 'left_w1_kd',
+                  'left_w2_kp', 'left_w2_ki', 'left_w2_kd',
+                  'error']
+    with open("simAnnPIDprogress.csv", "rb") as f:
+        reader = DictReader(f, fieldnames)
+        dictionary = reader.next()
+    params = dict2params(dictionary)
+    error = dictionary['error']
+
+    return params, error
 
 
 def main():
