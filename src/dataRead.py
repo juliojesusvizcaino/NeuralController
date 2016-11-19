@@ -2,13 +2,18 @@
 # -*- coding: utf-8 -*-
 import collections
 import operator
+import os
 import random
+from scipy.signal._peak_finding import find_peaks_cwt
 
+import h5py
 import numpy as np
+import peakutils
 import rosbag
 import tensorflow as tf
 import matplotlib.pyplot as plt
-from scipy import signal
+from scipy import signal, interpolate
+from numpy.linalg.linalg import norm
 
 #RobotData = collections.namedtuple('RobotData', ['current_pos', 'current_vel', 'desired_pos', 'desired_vel'])
 # todo generate method 'add' to RobotData or find a collections that implements it
@@ -16,9 +21,6 @@ from scipy import signal
 # - Mantener organizados los datos, que permita saber qué es cada dato (poner las articulaciones? -> Sí, para introducir datos con un diccionario)
 # - Obtener un vector de array cuando se necesite para procesarlo en
 
-# todo how to divide data in train, validation, and test?
-# todo resolve time delay problem
-# todo combine lstm with convolutional neural networks
 # class RobotData(object):
 #     def __init__(self, current_pos, current_vel, desired_pos, desired_vel):
 #         self.current_pos = current_pos
@@ -81,7 +83,7 @@ class ArmData(object):
 
 def split(data, num_pieces, axis=0, train=70, validation=10, test=20):
     if num_pieces < sum([a != 0 for a in (train, validation, test)]):
-        raise ValueError('Number of pieces has to be greater or equal than batches to divide')
+        raise ValueError('Number of pieces has to be greater or equal than batches to path_split')
     pieces = np.array_split(data, num_pieces, axis)
     total = float(train+validation+test)
     percents = np.array([train/total, validation/total, test/total])
@@ -104,65 +106,114 @@ def split(data, num_pieces, axis=0, train=70, validation=10, test=20):
 # def split_in_paths(data, train=70, validation=10, test=20):
 
 
-def read_data(bag):
-    state_topic = '/robot/joint_states'
-    command_topic = '/robot/limb/left/joint_command'
-    speed_ratio_topic = '/robot/limb/left/set_speed_ratio'
-    joint_commands = list()
-    joint_states = ArmData()
-
-    speed_ratio = 0
-    for topic, msg, t in bag.read_messages():
-        if topic == speed_ratio_topic:
-            speed_ratio = msg.data
-
-        elif topic == command_topic:
-            joint_commands.append(CommandData(JointData(**{joint: position
-                                  for joint, position in zip(msg.names, msg.command)}), speed_ratio))
-            if len(joint_commands) == 1:
-                print(speed_ratio)
-
-        elif topic == state_topic and len(joint_states) < len(joint_commands):
-            joint_states.append(msg)
-            if len(joint_states) == 5000:
-                break
-
-    joint_input = [InputData(joint_command.target_pos, pos, vel, joint_command.speed_ratio)
-                   for joint_command, pos, vel in
-                   zip(joint_commands, joint_states.pos, joint_states.vel)]
-    joint_torques = joint_states.effort
-
-    x = [joint_input[i].target_pos.left_s0 for i in range(len(joint_input))]
-    y = signal.medfilt(signal.lfilter([1, -0.98751], [0.012488], [input.target_pos.left_s0 for input in joint_input]))
-    derivative = np.abs(signal.lfilter([1, -1], [1], y))
-
-    # undo the low pass filter done by move_to_joint_position function in baxter API
-    fixed_target_pos = signal.medfilt(
-        signal.lfilter([1, -0.98751], [0.012488],
-                       [[joint for joint in input.target_pos] for input in joint_input], axis=0), [3, 1])
-    plt.plot(fixed_target_pos)
-    plt.show()
-
-    # init_pos =
-
-    # fixed_joint_input = [FixedData(fixed_target_pos, init_pos, )]
-    # print(len(x))
-    # print(len(y))
-    # plt.plot(y)
-    # plt.hold(True)
-    # plt.plot(x)
-    # plt.plot(derivative)
-    # plt.show()
-
-    # w1_pos = [joint_input[i].pos.left_w1 for i in range(len(joint_input))]
-    # w1_des_pos = [joint_input[i].target_pos.left_w1 for i in range(len(joint_input))]
-    # w1_speed_ratio = [joint_input[i].speed_ratio for i in range(len(joint_input))]
-    # plt.hold(True)
-    # plt.plot(w1_pos)
-    # plt.plot(w1_des_pos)
-    # plt.plot(w1_speed_ratio)
-    # plt.show()
+def path_split(peaks, data, init_pos=0):
+    print('len(peaks)=' + str(len(peaks)))
+    print('len(data)=' + str(len(data)))
+    assert len(peaks) == len(data)
+    distance = norm(peaks, axis=1)
+    index = init_pos + peakutils.indexes(distance[init_pos:], thres=0.1, min_dist=10)
+    index = np.insert(index, 0, [0])
+    index = np.insert(index, len(index), [len(peaks)+1])
+    divided = [data[i:j] for i, j in zip(index[0:-1], index[1:])]
+    return divided
 
 
-with rosbag.Bag('../DataBase/left_record_no_load.bag') as bag:
-    read_data(bag)
+def resize(length, data):
+    x = np.arange(len(data))
+    newx = np.linspace(0, x[-1], length)
+    print('interpolando')
+    f = interpolate.interp1d(x, data, axis=0)
+    return f(newx)
+
+
+def read_data(bag, force=False, path='../DataBase/raw_data.hdf5'):
+    names = ['target_pos', 'target_speed', 'pos', 'vel', 'effort']
+    if not force and os.path.exists(path):
+        with h5py.File(path, 'r') as f:
+            data = [np.array(f.get(name)) for name in names]
+        return data
+    else:
+        state_topic = '/robot/joint_states'
+        command_topic = '/robot/limb/left/joint_command'
+        speed_ratio_topic = '/robot/limb/left/set_speed_ratio'
+        joint_names = ['left_s0', 'left_s1', 'left_e0', 'left_e1', 'left_w0', 'left_w1', 'left_w2']
+
+        target_pos = list()
+        speed_ratio_list = list()
+        pos = list()
+        vel = list()
+        torque = list()
+
+        for topic, msg, t in bag.read_messages():
+            if topic == speed_ratio_topic:
+                speed_ratio_list.append(msg.data)
+
+            elif topic == command_topic:
+                target_pos.append(JointData(**{joint: position for joint, position in zip(msg.names, msg.command)}))
+
+            elif topic == state_topic and len(pos) < len(target_pos):
+                pos.append(JointData(**{joint: position for joint, position in zip(msg.name, msg.position)
+                                        if joint in joint_names}))
+                vel.append(JointData(**{joint: velocity for joint, velocity in zip(msg.name, msg.velocity)
+                                        if joint in joint_names}))
+                torque.append(JointData(**{joint: effort for joint, effort in zip(msg.name, msg.effort)
+                                           if joint in joint_names}))
+
+        pos, vel, torque = (pos[:-178], vel[:-178], torque[:-178])
+
+        with h5py.File(path, 'w') as f:
+            [f.create_dataset(name, data=data) for name, data in
+             zip(names, (target_pos, speed_ratio_list, pos, vel, torque))]
+        return target_pos, speed_ratio_list, pos, vel, torque
+
+
+def fix_data(target_pos, speed_ratio_list, pos, vel, torque, one_target=True):
+        (pos, vel, torque) = (resize(len(target_pos), data) for data in (pos, vel, torque))
+        # undo the low pass filter done by move_to_joint_position function in baxter API
+        fixed_target_pos = signal.medfilt(
+            signal.lfilter([1, -0.98751], [0.012488], target_pos, axis=0), [3, 1])
+        der = np.abs(signal.lfilter([1, -1], [1], fixed_target_pos, axis=0))
+
+        (div_target_pos, div_pos, div_vel, div_torque) =\
+            [path_split(der, data, init_pos=100) for data in (target_pos, pos, vel, torque)]
+
+        # plt.plot([pos_[0] for pos_ in pos[610000:]])
+        # plt.hold(True)
+        # plt.plot([pos_[0] for pos_ in target_pos[610000:]])
+        # plt.title('from 610.000 to end')
+        #
+        # plt.figure(2)
+        # plt.plot([pos_[0] for pos_ in pos[300000:305000]])
+        # plt.hold(True)
+        # plt.plot([pos_[0] for pos_ in target_pos[300000:305000]])
+        # plt.title('from 300.000 to 305000')
+        #
+        # plt.figure(3)
+        # plt.plot([pos_[0] for pos_ in pos[:5000]])
+        # plt.hold(True)
+        # plt.plot([pos_[0] for pos_ in target_pos[:5000]])
+        # plt.title('from 0 to 5000')
+        # plt.show()
+
+        if one_target:
+            div_target_pos = [pos_[-1] for pos_ in div_target_pos]
+
+        assert len(div_target_pos) == len(speed_ratio_list)
+        assert len(div_target_pos) == len(div_vel)
+        assert len(div_target_pos) == len(div_pos)
+        assert len(div_target_pos) == len(div_torque)
+
+        return div_target_pos, speed_ratio_list, div_pos, div_vel, div_torque
+
+name = '../DataBase/left_record_no_load.bag'
+with rosbag.Bag(name) as bag:
+    data = read_data(bag, force=False, path=name[:-3]+'hdf5')
+
+data = fix_data(*data)
+with h5py.File('../DataBase/data.hdf5', 'w') as f:
+    data_names = ['target_pos', 'target_speed', 'pos', 'vel', 'effort']
+    for this_data, name in zip(data, data_names):
+        group = f.create_group(name)
+        for i, d in enumerate(this_data):
+            print(np.shape(d))
+            group.create_dataset(str(i), data=d)
