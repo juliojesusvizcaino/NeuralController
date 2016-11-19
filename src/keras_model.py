@@ -26,6 +26,7 @@ def keras_model(max_unroll):
     model.add(TimeDistributed(Dense(50, activation='relu')))
     model.add(Dropout(0.1))
     model.add(TimeDistributed(Dense(7)))
+    # todo add softmax to non-output output unit
 
     return model
 
@@ -40,12 +41,15 @@ with h5py.File(path, 'r') as f:
 x_target = np.array(target_pos)
 x_first = np.array([pos_[0] for pos_ in pos])
 x_speed = np.array(target_speed).reshape((-1, 1))
+y = [np.concatenate([eff, np.ones(eff.shape[0]).reshape((-1, 1))], axis=1) for eff in effort]
 
 x = np.concatenate((x_target, x_first, x_speed), axis=1)
-y = pad_sequences(effort, padding='post', value=1000.)
-
+y = pad_sequences(y, padding='post', value=0.)
 x, x_test, y, y_test = train_test_split(x, y, test_size=0.2)
-mask = np.sum(y, axis=2) != 7000.0
+mask = y[:, :, -1] != 0
+mask_test = y_test[:, :, -1] != 0
+print(mask.shape)
+exit()
 
 model = keras_model(y.shape[1])
 
