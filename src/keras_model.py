@@ -15,17 +15,17 @@ def keras_model(max_unroll):
     inputs = Input(shape=(15,))
 
     x = RepeatVector(max_unroll)(inputs)
-    x = TimeDistributed(Dense(64))(x)
+    x = TimeDistributed(Dense(64, init='normal'))(x)
     x = Dropout(0.2)(x)
-    x = LSTM(64, return_sequences=True, dropout_U=0.1, dropout_W=0.1)(x)
-    x = Convolution1D(50, 3, border_mode='same', activation='softplus')(x)
+    x = LSTM(64, return_sequences=True, dropout_U=0.1, dropout_W=0.1, init='normal')(x)
+    x = Convolution1D(50, 3, border_mode='same', activation='softplus', init='normal')(x)
     # x = Dropout(0.1)(x)
     x = Convolution1D(20, 3, border_mode='same', activation='softplus')(x)
     # x = Dropout(0.1)(x)
-    x = TimeDistributed(Dense(50, activation='softplus'))(x)
+    x = TimeDistributed(Dense(50, activation='softplus', init='normal'))(x)
     # x = Dropout(0.1)(x)
-    main_output = TimeDistributed(Dense(7), name='output')(x)
-    mask_output = TimeDistributed(Dense(1, activation='sigmoid'), name='mask')(x)
+    main_output = TimeDistributed(Dense(7, init='normal'), name='output')(x)
+    mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x)
 
     model = Model(input=inputs, output=[main_output, mask_output])
 
