@@ -9,6 +9,7 @@ from keras.models import Sequential, Model
 from keras.preprocessing.sequence import pad_sequences
 import os
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing.data import StandardScaler
 
 
 def keras_model(max_unroll):
@@ -40,7 +41,6 @@ np.random.seed(1098)
 data = list()
 with h5py.File(path, 'r') as f:
     (target_pos, target_speed, pos, vel, effort) = [[np.array(val) for val in f[name].values()] for name in names]
-# todo normalizar datos
 
 x_target = np.array(target_pos)
 x_first = np.array([pos_[0] for pos_ in pos])
@@ -48,6 +48,14 @@ x_speed = np.array(target_speed).reshape((-1, 1))
 aux_output = [np.ones(eff.shape[0]).reshape((-1, 1)) for eff in effort]
 
 x = np.concatenate((x_target, x_first, x_speed), axis=1)
+
+input_scaler = StandardScaler()
+x = input_scaler.fit_transform(x)
+output_scaler = StandardScaler()
+effort_concat = np.concatenate([a for a in effort], axis=0)
+output_scaler.fit(effort_concat)
+effort = [output_scaler.transform(eff) for eff in effort]
+
 y = pad_sequences(effort, padding='post', value=0.)
 aux_output = pad_sequences(aux_output, padding='post', value=0.)
 x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.2)
