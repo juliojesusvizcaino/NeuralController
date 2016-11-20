@@ -3,30 +3,33 @@
 import h5py
 import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard
-from keras.layers.convolutional import Convolution1D
-from keras.layers.core import RepeatVector, Dense, Dropout
-from keras.layers.recurrent import LSTM
-from keras.layers.wrappers import TimeDistributed
+from keras.layers import RepeatVector, Dense, Dropout, Input, Convolution1D, LSTM, TimeDistributed
 from keras.metrics import mean_squared_error, mean_absolute_error
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 
 
 def keras_model(max_unroll):
-    model = Sequential()
-    model.add(RepeatVector(max_unroll, input_shape=(15,)))
-    model.add(TimeDistributed(Dense(64)))
-    model.add(Dropout(0.1))
-    model.add(LSTM(64, return_sequences=True, dropout_U=0.05, dropout_W=0.1))
-    model.add(Convolution1D(50, 3, border_mode='same', activation='relu'))
-    model.add(Dropout(0.1))
-    model.add(Convolution1D(20, 3, border_mode='same', activation='relu'))
-    model.add(Dropout(0.1))
-    model.add(TimeDistributed(Dense(50, activation='relu')))
-    model.add(Dropout(0.1))
-    model.add(TimeDistributed(Dense(7)))
-    # todo add softmax to non-output output unit
+    inputs = Input(shape=(15,))
+
+    x = RepeatVector(max_unroll)(inputs)
+    x = TimeDistributed(Dense(64))(x)
+    x = Dropout(0.1)(x)
+    x = LSTM(64, return_sequences=True, dropout_U=0.05, dropout_W=0.1)(x)
+    x = Convolution1D(50, 3, border_mode='same', activation='relu')(x)
+    x = Dropout(0.1)(x)
+    x = Convolution1D(20, 3, border_mode='same', activation='relu')(x)
+    x = Dropout(0.1)(x)
+    x = TimeDistributed(Dense(50, activation='relu'))(x)
+    x = Dropout(0.1)(x)
+    main_output = TimeDistributed(Dense(7), name='output')(x)
+    mask_output = TimeDistributed(Dense(1, activation='sigmoid'), name='mask')(x)
+
+    model = Model(input=inputs, output=[main_output, mask_output])
+
+    model.compile(optimizer='adam', loss='mae', sample_weight_mode='temporal',
+              metrics=[mean_absolute_error, mean_squared_error], loss_weights=[1., 1.])
 
     return model
 
@@ -41,24 +44,23 @@ with h5py.File(path, 'r') as f:
 x_target = np.array(target_pos)
 x_first = np.array([pos_[0] for pos_ in pos])
 x_speed = np.array(target_speed).reshape((-1, 1))
-y = [np.concatenate([eff, np.ones(eff.shape[0]).reshape((-1, 1))], axis=1) for eff in effort]
+aux_output = [np.ones(eff.shape[0]).reshape((-1, 1)) for eff in effort]
 
 x = np.concatenate((x_target, x_first, x_speed), axis=1)
-y = pad_sequences(y, padding='post', value=0.)
-x, x_test, y, y_test = train_test_split(x, y, test_size=0.2)
-mask = y[:, :, -1] != 0
-mask_test = y_test[:, :, -1] != 0
-print(mask.shape)
-exit()
+y = pad_sequences(effort, padding='post', value=0.)
+aux_output = pad_sequences(aux_output, padding='post', value=0.)
+x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.2)
+
+mask = y_aux[:, :, 0]
+mask_test = y_aux_test[:, :, 0]
+mask_aux = np.ones(y_aux.shape[0:2])
+mask_aux_test = np.ones(y_aux_test.shape[0:2])
 
 model = keras_model(y.shape[1])
 
-model.compile(optimizer='adam', loss='mean_absolute_error', sample_weight_mode='temporal',
-              metrics=[mean_absolute_error, mean_squared_error])
-
-saveCallback = ModelCheckpoint('save/model_checkpoint.{epoch:03d}-{mae:.3f}.hdf5')
+saveCallback = ModelCheckpoint('save/model_checkpoint.{epoch:03d}-mae{val_loss:.3f}.hdf5', monitor='val_loss')
 tensorboardCallback = TensorBoard(histogram_freq=10)
-model.fit(x, y, nb_epoch=500, batch_size=32,
-          callbacks=[saveCallback, tensorboardCallback], sample_weight=mask)
+model.fit(x, [y, y_aux], nb_epoch=500, batch_size=32, validation_split=0.2,
+          callbacks=[saveCallback, tensorboardCallback], sample_weight=[mask, mask_aux])
 
 
