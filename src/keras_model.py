@@ -7,6 +7,7 @@ from keras.layers import RepeatVector, Dense, Dropout, Input, Convolution1D, LST
 from keras.metrics import mean_squared_error, mean_absolute_error
 from keras.models import Sequential, Model
 from keras.preprocessing.sequence import pad_sequences
+import os
 from sklearn.model_selection import train_test_split
 
 
@@ -57,6 +58,9 @@ mask_aux = np.ones(y_aux.shape[0:2])
 mask_aux_test = np.ones(y_aux_test.shape[0:2])
 
 model = keras_model(y.shape[1])
+
+if not os.path.exists('save'):
+    os.makedirs('save')
 
 saveCallback = ModelCheckpoint('save/model_checkpoint.{epoch:03d}-mae{val_loss:.3f}.hdf5', monitor='val_loss')
 tensorboardCallback = TensorBoard(histogram_freq=10)
