@@ -18,8 +18,7 @@ def keras_model(max_unroll):
     x = RepeatVector(max_unroll)(inputs)
     x = TimeDistributed(Dense(64, init='normal'))(x)
     # x = Dropout(0.2)(x)
-    x = LSTM(64, return_sequences=True, init='normal')(x)
-    x = LSTM(64, return_sequences=True, init='normal')(x)
+    x = LSTM(64, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
     # x = Convolution1D(50, 3, border_mode='same', activation='softplus', init='normal')(x)
     # x = Dropout(0.1)(x)
     # x = Convolution1D(20, 3, border_mode='same', activation='softplus')(x)
@@ -74,7 +73,7 @@ if not os.path.exists('save'):
 
 saveCallback = ModelCheckpoint('save/model_checkpoint.{epoch:03d}-mae{val_loss:.3f}.hdf5', monitor='val_loss')
 tensorboardCallback = TensorBoard(histogram_freq=10)
-model.fit(x, [y[:,:15,:], y_aux[:,:15,:]], nb_epoch=500, batch_size=32, validation_split=0.2,
+model.fit(x, [y[:,:15,:], y_aux[:,:15,:]], nb_epoch=10000, batch_size=32, validation_split=0.2,
           callbacks=[saveCallback, tensorboardCallback])
 
 
