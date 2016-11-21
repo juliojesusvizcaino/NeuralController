@@ -18,7 +18,7 @@ def keras_model(max_unroll):
     x = RepeatVector(max_unroll)(inputs)
     x = TimeDistributed(Dense(64, init='normal'))(x)
     x = Dropout(0.2)(x)
-    x = LSTM(64, return_sequences=True, dropout_U=0.1, dropout_W=0.1, init='normal')(x)
+    x = LSTM(64, return_sequences=True, init='normal')(x)
     x = Convolution1D(50, 3, border_mode='same', activation='softplus', init='normal')(x)
     # x = Dropout(0.1)(x)
     x = Convolution1D(20, 3, border_mode='same', activation='softplus')(x)
