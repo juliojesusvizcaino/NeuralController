@@ -5,7 +5,7 @@ import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard
 from keras.layers import RepeatVector, Dense, Dropout, Input, Convolution1D, LSTM, TimeDistributed
 from keras.metrics import mean_squared_error, mean_absolute_error
-from keras.models import Sequential, Model
+from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 import os
 from sklearn.model_selection import train_test_split
@@ -17,12 +17,14 @@ def keras_model(max_unroll):
 
     x = RepeatVector(max_unroll)(inputs)
     x = TimeDistributed(Dense(64, init='normal'))(x)
-    x = Dropout(0.2)(x)
+    # x = Dropout(0.2)(x)
     x = LSTM(64, return_sequences=True, init='normal')(x)
-    x = Convolution1D(50, 3, border_mode='same', activation='softplus', init='normal')(x)
+    x = LSTM(64, return_sequences=True, init='normal')(x)
+    # x = Convolution1D(50, 3, border_mode='same', activation='softplus', init='normal')(x)
     # x = Dropout(0.1)(x)
-    x = Convolution1D(20, 3, border_mode='same', activation='softplus')(x)
+    # x = Convolution1D(20, 3, border_mode='same', activation='softplus')(x)
     # x = Dropout(0.1)(x)
+    x = TimeDistributed(Dense(50, activation='softplus', init='normal'))(x)
     x = TimeDistributed(Dense(50, activation='softplus', init='normal'))(x)
     # x = Dropout(0.1)(x)
     main_output = TimeDistributed(Dense(7, init='normal'), name='output')(x)
@@ -65,14 +67,14 @@ mask_test = y_aux_test[:, :, 0]
 mask_aux = np.ones(y_aux.shape[0:2])
 mask_aux_test = np.ones(y_aux_test.shape[0:2])
 
-model = keras_model(y.shape[1])
+model = keras_model(15)
 
 if not os.path.exists('save'):
     os.makedirs('save')
 
 saveCallback = ModelCheckpoint('save/model_checkpoint.{epoch:03d}-mae{val_loss:.3f}.hdf5', monitor='val_loss')
 tensorboardCallback = TensorBoard(histogram_freq=10)
-model.fit(x, [y, y_aux], nb_epoch=500, batch_size=32, validation_split=0.2,
-          callbacks=[saveCallback, tensorboardCallback], sample_weight=[mask, mask_aux])
+model.fit(x, [y[:,:15,:], y_aux[:,:15,:]], nb_epoch=500, batch_size=32, validation_split=0.2,
+          callbacks=[saveCallback, tensorboardCallback])
 
 
