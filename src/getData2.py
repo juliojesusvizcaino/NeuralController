@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import argparse
 from random import uniform
 import numpy as np
 
@@ -53,15 +54,31 @@ def get_random_pos(names, limits):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument('-j', '--joints', help='Joints to move', nargs='*', default=None)
+
+    args = parser.parse_args(rospy.myargv()[1:])
+    joints_to_move = args.joints
+
     rospy.init_node('nodo_mueve_brazo')
     limb = baxter_interface.Limb('left')
     names = limb.joint_names()
     limits = np.array([[-1.7016, 1.7016], [-2.147, 1.047],
                        [-3.0541, 3.0541], [-0.05, 2.618],
                        [-3.059, 3.059], [-1.5707, 2.094], [-3.059, 3.059]])
+    if joints_to_move is not None:
+        joint_names = [name for name in names if any(joint in name for joint in joints_to_move)]
+        non_moving_names  = [name for name in names if name not in joint_names]
+    else:
+        joint_names = names
+        non_moving_names = dict()
+    non_moving_joints = {name: 0 for name in non_moving_names}
+    print('Moving: ' + str(joint_names))
+    print('Not Moving: ' + str(non_moving_names))
+
     while not rospy.is_shutdown():
         limb.set_joint_position_speed(uniform(0, 1))
-        limb.move_to_joint_positions(get_random_pos(names, limits))
+        limb.move_to_joint_positions(non_moving_joints.update(get_random_pos(names, limits)))
 
 
 if __name__ == '__main__':
