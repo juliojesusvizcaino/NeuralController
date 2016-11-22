@@ -81,8 +81,8 @@ def parse():
     parser.add_argument('-t', '--train', help='Begin training', action='store_true')
     parser.add_argument('-r', '--resume', help='Resume training', action='store_true')
     parser.add_argument('-f', '--filename', help='Name of the file')
-    parser.add_argument('-n', '--nrollout', help='Number of rollouts', type='int', default=1502)
-    parser.add_argument('-e', '--epoch', help='Number of epoch', type='int', default=500)
+    parser.add_argument('-n', '--nrollout', help='Number of rollouts', type=int, default=1502)
+    parser.add_argument('-e', '--epoch', help='Number of epoch', type=int, default=500)
     return parser.parse_args()
 
 
