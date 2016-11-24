@@ -122,10 +122,10 @@ def main():
     effort = [output_scaler.transform(eff) for eff in effort]
 
     y = pad_sequences(effort, padding='post', value=0.)
-    aux_output = pad_sequences(aux_output, padding='post', value=-1.)
+    aux_output = pad_sequences(aux_output, padding='post', value=0.)
     x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.2)
 
-    y_mask, y_test_mask = [(this_y[:,:,0]+1)/2.0 for this_y in (y_aux, y_aux_test)]
+    y_mask, y_test_mask = [this_y[:,:,0] for this_y in (y_aux, y_aux_test)]
     y_aux_mask, y_aux_test_mask = [np.ones(this_y.shape[:2]) for this_y in (y_aux, y_aux_test)]
 
     model = MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
