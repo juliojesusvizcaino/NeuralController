@@ -15,14 +15,15 @@ from sklearn.preprocessing.data import StandardScaler
 
 
 class MyModel(object):
-    def __init__(self, x=None, y=None, x_val=None, y_val=None,
+    def __init__(self, train, val, train_mask=None, val_mask=None,
                  max_unroll=1502, name='model', save_dir='save/', log_dir='./logs'):
-        self.x = x
-        self.y = y
-        self.x_val = x_val
-        self.y_val = y_val
+        self.set_training_data(train)
+        self.set_validation_data(val)
+        self.train_mask = self._set_mask(train_mask)
+        self.val_mask = self._set_mask(val_mask)
         self.model = self._keras_model(max_unroll)
         self.save_path = save_dir + name
+        self.max_unroll = max_unroll
 
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
@@ -31,13 +32,20 @@ class MyModel(object):
         tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=10)
         self.callbacks = [save, tensorboard]
 
-    def set_training_data(self, x, y):
-        self.x = x
-        self.y = y
+    def _set_data(self, data):
+        x = data[0]
+        y = [this_data[:,:self.max_unroll,:] for this_data in data[1]]
+        return x, y
 
-    def set_validation_data(self, x, y):
-        self.x_val = x
-        self.y_val = y
+    def _set_mask(self, data):
+        mask = [this_data[:,:self.max_unroll] for this_data in data]
+        return mask
+
+    def set_training_data(self, train):
+        self.x, self.y = self._set_data(train)
+
+    def set_validation_data(self, val):
+        self.x_val, self.y_val = self._set_data(val)
 
     def _keras_model(self, max_unroll):
         inputs = Input(shape=(15,))
@@ -54,7 +62,7 @@ class MyModel(object):
         x = TimeDistributed(Dense(50, activation='softplus', init='normal'))(x)
         # x = Dropout(0.1)(x)
         main_output = TimeDistributed(Dense(7, init='normal'), name='output')(x)
-        mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x)
+        mask_output = TimeDistributed(Dense(1, activation='tanh', init='normal'), name='mask')(x)
 
         model = Model(input=inputs, output=[main_output, mask_output])
 
@@ -64,8 +72,8 @@ class MyModel(object):
         return model
 
     def fit(self, *args, **kwargs):
-        self.model.fit(x=self.x, y=self.y, validation_data=[self.x_val, self.y_val],
-                       callbacks=self.callbacks, *args, **kwargs)
+        self.model.fit(x=self.x, y=self.y, validation_data=[self.x_val, self.y_val, self.val_mask],
+                       sample_weight=self.train_mask, callbacks=self.callbacks, *args, **kwargs)
 
     def load(self):
         file = max(glob.glob(self.save_path + '*'))
@@ -117,19 +125,20 @@ def main():
     aux_output = pad_sequences(aux_output, padding='post', value=0.)
     x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.2)
 
-    model = MyModel(x, [y[:,:n_rollout,:], y_aux[:,:n_rollout,:]],
-                    x_test, [y_test[:,:n_rollout,:], y_aux_test[:,:n_rollout,:]],
-                    n_rollout, name=name)
+    y_mask, y_test_mask = [this_y[:,:,0] for this_y in (y_aux, y_aux_test)]
+    y_aux_mask, y_aux_test_mask = [np.ones(this_y.shape[:,:,0]) for this_y in (y_aux, y_aux_test)]
+
+    model = MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
+                    train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
+                    max_unroll=n_rollout, name=name)
 
     if not os.path.exists('save'):
         os.makedirs('save')
 
     if args.train:
-        model.fit(nb_epoch=n_epoch, batch_size=32,
-                  sample_weight=[y_aux[:,:n_rollout,0], np.ones(y_aux[:,:n_rollout,0].shape)])
+        model.fit(nb_epoch=n_epoch, batch_size=32)
     elif args.resume:
-        model.resume(nb_epoch=n_epoch, batch_size=32,
-                     sample_weight=[y_aux[:,:n_rollout,0], np.ones(y_aux[:,:n_rollout,0].shape)])
+        model.resume(nb_epoch=n_epoch, batch_size=32)
 
 if __name__ == '__main__':
     try:
