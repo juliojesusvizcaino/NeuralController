@@ -125,9 +125,11 @@ def main():
         os.makedirs('save')
 
     if args.train:
-        model.fit(nb_epoch=n_epoch, batch_size=32)
+        model.fit(nb_epoch=n_epoch, batch_size=32,
+                  sample_weight=[y_aux[:,:n_rollout], np.ones(y_aux[:,:n_rollout].shape)])
     elif args.resume:
-        model.resume(nb_epoch=n_epoch, batch_size=32)
+        model.resume(nb_epoch=n_epoch, batch_size=32,
+                     sample_weight=[y_aux[:,:n_rollout], np.ones(y_aux[:,:n_rollout].shape)])
 
 if __name__ == '__main__':
     try:
