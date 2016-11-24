@@ -39,7 +39,7 @@ class RobotData(object):
         self.bagpath = bagpath
         load_path = bagpath[:-3] + 'hdf5'
         if reload or not os.path.exists(load_path):
-            data = self._read_data(bagpath, reload)
+            data = self._read_data(bagpath, one_target)
             data = self._fix_data(*data, one_target=one_target)
             if one_target:
                 self._save_one_target_data(data, load_path)
@@ -101,6 +101,8 @@ class RobotData(object):
             with h5py.File(filepath, 'w') as f:
                 [f.create_dataset(name, data=data) for name, data in
                  zip(names, (target_pos, speed_ratio_list, pos, vel, torque))]
+            print('Saved in: ' + filepath)
+            exit()
             return target_pos, speed_ratio_list, pos, vel, torque
 
     def _fix_data(self, target_pos, speed_ratio_list, pos, vel, torque, one_target=True):
@@ -140,8 +142,6 @@ class RobotData(object):
         assert len(div_target_pos) == len(div_pos)
         assert len(div_target_pos) == len(div_torque)
 
-        speed_ratio_list = speed_ratio_list[:len(div_target_pos)]
-
         return div_target_pos, speed_ratio_list, div_pos, div_vel, div_torque
 
     def path_split(self, peaks, data, n, init_pos=0):
@@ -157,8 +157,8 @@ class RobotData(object):
             index = np.insert(index, 0, [0])
             print('Peaks detected: ' + str(index.shape[0]) + 'n: ' + str(n))
             thres = thres/2
-        n_index = np.argsort(distance[index])
-        n_index = n_index[:n]
+        index_index = np.argsort(distance[index])[::-1]
+        n_index = index[index_index[:n]]
         n_index.sort()
         n_index = np.insert(n_index, len(n_index), [len(peaks)+1])
         divided = [data[i:j] for i, j in zip(n_index[0:-1], n_index[1:])]
@@ -193,7 +193,10 @@ class RobotData(object):
         newx = np.linspace(0, x[-1], length)
         print('interpolando')
         f = interpolate.interp1d(x, data, axis=0)
-        return f(newx)
+        newdata = f(newx)
+        # newdata = [np.interp(newx, x, np.array(data)[:,i]) for i in range(np.array(data).shape[1])]
+        # newdata = np.concatenate([a.reshape(-1, 1) for a in newdata], axis=1)
+        return newdata
 
     def _save_one_target_data(self, data, path):
         with h5py.File(path, 'w') as f:
