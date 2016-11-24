@@ -62,7 +62,7 @@ class MyModel(object):
         x = TimeDistributed(Dense(50, activation='softplus', init='normal'))(x)
         # x = Dropout(0.1)(x)
         main_output = TimeDistributed(Dense(7, init='normal'), name='output')(x)
-        mask_output = TimeDistributed(Dense(1, activation='tanh', init='normal'), name='mask')(x)
+        mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x)
 
         model = Model(input=inputs, output=[main_output, mask_output])
 
