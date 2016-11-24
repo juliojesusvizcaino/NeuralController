@@ -80,7 +80,8 @@ def parse():
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument('-t', '--train', help='Begin training', action='store_true')
     parser.add_argument('-r', '--resume', help='Resume training', action='store_true')
-    parser.add_argument('-f', '--filename', help='Name of the file')
+    parser.add_argument('-f', '--filename', help='Name of the file to load', default='../DataBase/left_record_no_load.hdf5')
+    parser.add_argument('-s', '--savename', help='Name of the file to save')
     parser.add_argument('-n', '--nrollout', help='Number of rollouts', type=int, default=1502)
     parser.add_argument('-e', '--epoch', help='Number of epoch', type=int, default=500)
     return parser.parse_args()
@@ -90,10 +91,10 @@ def main():
     args = parse()
     n_rollout = args.nrollout
     n_epoch = args.epoch
-    name = args.filename if args.filename is not None else 'model-' + str(n_rollout) + 'unroll'
+    name = args.savename if args.savename is not None else 'model-' + str(n_rollout) + 'unroll'
 
     np.random.seed(1098)
-    path = '../DataBase/data.hdf5'
+    path = args.filename
     names = ['target_pos', 'target_speed', 'pos', 'vel', 'effort']
     with h5py.File(path, 'r') as f:
         (target_pos, target_speed, pos, vel, effort) = [[np.array(val) for val in f[name].values()] for name in names]
