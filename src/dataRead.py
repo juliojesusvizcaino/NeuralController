@@ -3,10 +3,7 @@
 
 import collections
 import os
-import random
 from scipy import signal, interpolate
-from scipy.signal.filter_design import cheby1
-from scipy.signal.signaltools import lfilter
 
 import h5py
 import numpy as np
@@ -16,22 +13,6 @@ from keras.preprocessing.sequence import pad_sequences
 from numpy.linalg.linalg import norm
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing.data import StandardScaler
-
-import matplotlib.pyplot as plt
-
-
-#RobotData = collections.namedtuple('RobotData', ['current_pos', 'current_vel', 'desired_pos', 'desired_vel'])
-# todo generate method 'add' to RobotData or find a collections that implements it
-# necesito una estructura de datos que almacene las posiciones y velocidades actuales y deseadas, que cumpla dos funciones:
-# - Mantener organizados los datos, que permita saber qué es cada dato (poner las articulaciones? -> Sí, para introducir datos con un diccionario)
-# - Obtener un vector de array cuando se necesite para procesarlo en
-
-# class RobotData(object):
-#     def __init__(self, current_pos, current_vel, desired_pos, desired_vel):
-#         self.current_pos = current_pos
-#         self.current_vel = current_vel
-#         self.desired_pos = desired_pos
-#         self.desired_vel = desired_vel
 
 
 class RobotData(object):
@@ -88,21 +69,14 @@ class RobotData(object):
                         delay -= 1
                         delay_list.append(delay)
 
-            filter_delay = lfilter(np.ones(5001), [5001], delay_list)
+            filter_delay = signal.lfilter(np.ones(5001), [5001], delay_list)
             peak = np.argmax(filter_delay)
-            print(peak, len(delay_list))
-
-            ejex = np.arange(len(delay_list))
-            plt.plot(ejex, delay_list, ejex, filter_delay, peak, filter_delay[peak], 'rx')
-            plt.show()
 
             pos, vel, torque = [a[:peak] for a in (pos, vel, torque)]
 
             with h5py.File(filepath, 'w') as f:
                 [f.create_dataset(name, data=data) for name, data in
                  zip(names, (target_pos, speed_ratio_list, pos, vel, torque))]
-            print('Saved in: ' + filepath)
-            exit()
             return target_pos, speed_ratio_list, pos, vel, torque
 
     def _fix_data(self, target_pos, speed_ratio_list, pos, vel, torque, one_target=True):
@@ -116,28 +90,9 @@ class RobotData(object):
             [self.path_split(der, data, len(speed_ratio_list), init_pos=100)
              for data in (target_pos, pos, vel, torque)]
 
-        # plt.plot([pos_[0] for pos_ in pos[610000:]])
-        # plt.hold(True)
-        # plt.plot([pos_[0] for pos_ in target_pos[610000:]])
-        # plt.title('from 610.000 to end')
-        #
-        # plt.figure(2)
-        # plt.plot([pos_[0] for pos_ in pos[300000:305000]])
-        # plt.hold(True)
-        # plt.plot([pos_[0] for pos_ in target_pos[300000:305000]])
-        # plt.title('from 300.000 to 305000')
-        #
-        # plt.figure(3)
-        # plt.plot([pos_[0] for pos_ in pos[:5000]])
-        # plt.hold(True)
-        # plt.plot([pos_[0] for pos_ in target_pos[:5000]])
-        # plt.title('from 0 to 5000')
-        # plt.show()
-
         if one_target:
             div_target_pos = [pos_[-1] for pos_ in div_target_pos]
-        print(len(div_target_pos), len(speed_ratio_list))
-        # assert len(div_target_pos) == len(speed_ratio_list)
+        assert len(div_target_pos) == len(speed_ratio_list)
         assert len(div_target_pos) == len(div_vel)
         assert len(div_target_pos) == len(div_pos)
         assert len(div_target_pos) == len(div_torque)
@@ -145,8 +100,6 @@ class RobotData(object):
         return div_target_pos, speed_ratio_list, div_pos, div_vel, div_torque
 
     def path_split(self, peaks, data, n, init_pos=0):
-        print('len(peaks)=' + str(len(peaks)))
-        print('len(data)=' + str(len(data)))
         assert len(peaks) == len(data)
         thres = 0.1
 
@@ -155,7 +108,6 @@ class RobotData(object):
         while index.shape[0] < n:
             index = init_pos + peakutils.indexes(distance[init_pos:], thres=thres, min_dist=10)
             index = np.insert(index, 0, [0])
-            print('Peaks detected: ' + str(index.shape[0]) + 'n: ' + str(n))
             thres = thres/2
         index_index = np.argsort(distance[index])[::-1]
         n_index = index[index_index[:n]]
@@ -165,37 +117,11 @@ class RobotData(object):
         assert len(divided) == n
         return divided
 
-    # def split(self, data, num_pieces, axis=0, train=70, validation=10, test=20):
-    #     if num_pieces < sum([a != 0 for a in (train, validation, test)]):
-    #         raise ValueError('Number of pieces has to be greater or equal than batches to path_split')
-    #     pieces = np.array_split(data, num_pieces, axis)
-    #     total = float(train + validation + test)
-    #     percents = np.array([train / total, validation / total, test / total])
-    #     print percents[0]
-    #
-    #     while True:
-    #         a = [random.random() for _ in range(num_pieces)]
-    #         train_set = [piece for piece, prob in zip(pieces, a) if prob < percents[0]]
-    #         validation_set = [piece for piece, prob in zip(pieces, a) if
-    #                           percents[0] <= prob < percents[0] + percents[1]]
-    #         test_set = [piece for piece, prob in zip(pieces, a) if percents[0] + percents[1] <= prob]
-    #         sets = (train_set, validation_set, test_set)
-    #
-    #         if np.any((percents != 0) & [len(this_set) == 0 for this_set in sets]):
-    #             continue
-    #         else:
-    #             break
-    #
-    #     return sets
-
     def resize(self, length, data):
         x = np.arange(len(data))
         newx = np.linspace(0, x[-1], length)
-        print('interpolando')
         f = interpolate.interp1d(x, data, axis=0)
         newdata = f(newx)
-        # newdata = [np.interp(newx, x, np.array(data)[:,i]) for i in range(np.array(data).shape[1])]
-        # newdata = np.concatenate([a.reshape(-1, 1) for a in newdata], axis=1)
         return newdata
 
     def _save_one_target_data(self, data, path):
@@ -204,7 +130,6 @@ class RobotData(object):
             for this_data, name in zip(data, data_names):
                 group = f.create_group(name)
                 for i, d in enumerate(this_data):
-                    print(np.shape(d))
                     group.create_dataset(str(i), data=d)
 
     def _load_one_target_data(self, path):
@@ -235,49 +160,10 @@ class RobotData(object):
         return x, x_test, y, y_test, y_aux, y_aux_test
 
 
-
-# train = RobotData(train_input, train_torques)
-
-# JointData = collections.namedtuple('JointData', ('s0', 's1', 'e0', 'e1', 'w0', 'w1', 'w2'))
 JointData = collections.namedtuple('JointData',
                                    ('left_s0', 'left_s1', 'left_e0', 'left_e1',
                                     'left_w0', 'left_w1', 'left_w2'))
 
-CommandData = collections.namedtuple('CommandData', ('target_pos', 'speed_ratio'))
-
-InputData = collections.namedtuple('InputData', ('target_pos', 'pos', 'vel', 'speed_ratio'))
-FixedData = collections.namedtuple('FixedData', ('target_pos', 'init_pos', 'speed_ratio'))
-
-
-class ArmData(object):
-    def __init__(self):
-        self._pos = list()
-        self._vel = list()
-        self._effort = list()
-        self._joint_names = ['left_s0', 'left_s1', 'left_e0', 'left_e1', 'left_w0', 'left_w1', 'left_w2']
-
-    @property
-    def pos(self):
-        return self._pos
-
-    @property
-    def vel(self):
-        return self._vel
-
-    @property
-    def effort(self):
-        return self._effort
-
-    def __len__(self):
-        return len(self._pos)
-
-    def append(self, msg):
-        self._pos.append(JointData(**{joint: pos for joint, pos in zip(msg.name, msg.position)
-                         if joint in self._joint_names}))
-        self._vel.append(JointData(**{joint: vel for joint, vel in zip(msg.name, msg.velocity)
-                         if joint in self._joint_names}))
-        self._effort.append(JointData(**{joint: effort for joint, effort in zip(msg.name, msg.effort)
-                            if joint in self._joint_names}))
 
 def main():
     name = '../DataBase/left_record_no_load.bag'
