@@ -99,7 +99,7 @@ def main():
     args = parse()
     n_rollout = args.nrollout
     n_epoch = args.epoch
-    name = args.savename if args.savename is not None else 'model-' + str(n_rollout) + 'unroll'
+    savename = args.savename if args.savename is not None else 'model-' + str(n_rollout) + 'unroll'
 
     np.random.seed(1098)
     path = args.filename
@@ -130,7 +130,7 @@ def main():
 
     model = MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
                     train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
-                    max_unroll=n_rollout, name=name)
+                    max_unroll=n_rollout, name=savename)
 
     if not os.path.exists('save'):
         os.makedirs('save')
