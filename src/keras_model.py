@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 import argparse
 import glob
+import os
 
 import h5py
 import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard
-from keras.layers import RepeatVector, Dense, Dropout, Input, Convolution1D, LSTM, TimeDistributed
+from keras.layers import RepeatVector, Dense, Input, TimeDistributed
+from keras.layers.recurrent import GRU
 from keras.metrics import mean_squared_error, mean_absolute_error
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
-import os
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing.data import StandardScaler
 
@@ -53,7 +54,7 @@ class MyModel(object):
         x = RepeatVector(max_unroll)(inputs)
         x = TimeDistributed(Dense(64, init='normal'))(x)
         # x = Dropout(0.2)(x)
-        x = LSTM(64, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
+        x = GRU(64, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
         # x = Convolution1D(50, 3, border_mode='same', activation='softplus', init='normal')(x)
         # x = Dropout(0.1)(x)
         # x = Convolution1D(20, 3, border_mode='same', activation='softplus')(x)
