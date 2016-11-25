@@ -54,11 +54,13 @@ class MyModel(object):
         # x = Dropout(0.1)(x)
         # x = Convolution1D(20, 3, border_mode='same', activation='softplus')(x)
         # x = Dropout(0.1)(x)
-        x = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
-        x = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
+        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
+        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x1)
+        x2 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
+        x2 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x2)
         # x = Dropout(0.1)(x)
-        main_output = TimeDistributed(Dense(7, init='normal'), name='output')(x)
-        mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x)
+        main_output = TimeDistributed(Dense(7, init='normal'), name='output')(x1)
+        mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x2)
 
         model = Model(input=inputs, output=[main_output, mask_output])
 
