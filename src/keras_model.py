@@ -19,11 +19,11 @@ class MyModel(object):
     def __init__(self, train, val, train_mask=None, val_mask=None,
                  max_unroll=1502, name='model', save_dir='save/', log_dir='./logs'):
         self.max_unroll = max_unroll
-        self.set_training_data(train)
-        self.set_validation_data(val)
+        self.x, self.y = self._set_data(train)
+        self.x_val, self.y_val = self._set_data(val)
         self.train_mask = self._set_mask(train_mask)
         self.val_mask = self._set_mask(val_mask)
-        self.model = self._keras_model(max_unroll)
+        self.model = self._keras_model()
         self.save_path = save_dir + name
 
         if not os.path.exists(save_dir):
@@ -42,16 +42,10 @@ class MyModel(object):
         mask = [this_data[:,:self.max_unroll] for this_data in data]
         return mask
 
-    def set_training_data(self, train):
-        self.x, self.y = self._set_data(train)
-
-    def set_validation_data(self, val):
-        self.x_val, self.y_val = self._set_data(val)
-
-    def _keras_model(self, max_unroll):
+    def _keras_model(self):
         inputs = Input(shape=(15,))
 
-        x = RepeatVector(max_unroll)(inputs)
+        x = RepeatVector(self.max_unroll)(inputs)
         x = TimeDistributed(Dense(64, init='normal'))(x)
         # x = Dropout(0.2)(x)
         x = GRU(10, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
