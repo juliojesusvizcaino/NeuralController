@@ -52,7 +52,7 @@ def get_random_pos(names, limits):
 #         super.__init__(self, limb)
 #         self.bag = rosbag.Bag(self.name+'DataRecord.bag', mode='a', )
 
-class SpeedRange(object):
+class Range(object):
     def __init__(self, start, end):
         self.start = start
         self.end = end
@@ -64,9 +64,10 @@ class SpeedRange(object):
 def main():
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument('-j', '--joints', help='Joints to move', nargs='*', default=None)
-    parser.add_argument('-t', '--timeout', help='Maximum time movements have', type=float, default=15.0)
+    parser.add_argument('-t', '--timeout', help='Maximum time movements have',
+                        type=float, choices=[Range(0.0, 15.0)], default=15.0)
     parser.add_argument('-s', '--speed', help='Speed to move (default variable speed)',
-                        type=float, choices=[SpeedRange(0.0, 1.0)], default=None)
+                        type=float, choices=[Range(0.0, 1.0)], default=None)
 
     args = parser.parse_args(rospy.myargv()[1:])
     joints_to_move = args.joints
