@@ -3,6 +3,7 @@
 
 import collections
 import os
+from os import walk
 from scipy import signal, interpolate
 
 import h5py
@@ -60,6 +61,8 @@ class RobotData(object):
                         delay += 1
 
                     elif topic == state_topic and len(pos) < len(target_pos):
+                        if any([n not in msg.name for n in joint_names]):
+                            continue
                         pos.append(JointData(**{joint: position for joint, position in zip(msg.name, msg.position)
                                                 if joint in joint_names}))
                         vel.append(JointData(**{joint: velocity for joint, velocity in zip(msg.name, msg.velocity)
@@ -168,8 +171,19 @@ JointData = collections.namedtuple('JointData',
 def main():
     name = '../DataBase/left_record_no_load.bag'
     name2 = '../DataBase/left_record_w0_w1.bag'
+    name3 = '../DataBase/left_record_e1_0.bag'
 
-    data = RobotData(name2, reload=False)
+    files = []
+    for (dirpath, dirnames, filenames) in walk('../DataBase'):
+        files.extend(filenames)
+        break
+
+    bagfiles = [f for f in files if f.endswith('.bag')]
+    print(bagfiles)
+
+    bagpaths = ['../DataBase/' + f for f in bagfiles]
+
+    data = [RobotData(filepath, reload=False) for filepath in bagpaths]
 
 if __name__ == '__main__':
     main()
