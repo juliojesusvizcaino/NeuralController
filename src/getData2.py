@@ -56,9 +56,16 @@ def get_random_pos(names, limits):
 def main():
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument('-j', '--joints', help='Joints to move', nargs='*', default=None)
+    parser.add_argument('-t', '--timeout', help='Maximum time movements have', type=float, default=15.0)
+    parser.add_argument('-s', '--speed', help='Speed to move (default variable speed)', type=float, default=None)
 
     args = parser.parse_args(rospy.myargv()[1:])
     joints_to_move = args.joints
+    timeout = args.timeout
+    if args.speed is None:
+        def speed(): return uniform(0,1)
+    else:
+        def speed(): return args.speed
 
     rospy.init_node('nodo_mueve_brazo')
     limb = baxter_interface.Limb('left')
@@ -81,9 +88,9 @@ def main():
     print(non_moving_joints)
 
     while not rospy.is_shutdown():
-        limb.set_joint_position_speed(uniform(0, 1))
+        limb.set_joint_position_speed(speed())
         all_joints.update(get_random_pos(joint_names, limits))
-        limb.move_to_joint_positions(all_joints)
+        limb.move_to_joint_positions(all_joints, timeout=timeout)
 
 
 if __name__ == '__main__':
