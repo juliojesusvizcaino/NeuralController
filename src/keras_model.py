@@ -6,7 +6,7 @@ import os
 import h5py
 import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard
-from keras.layers import RepeatVector, Dense, Input, TimeDistributed
+from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout
 from keras.layers.recurrent import GRU
 from keras.metrics import mean_squared_error, mean_absolute_error
 from keras.models import Model
@@ -50,12 +50,20 @@ class MyModel(object):
         # x = Dropout(0.2)(x)
         x = GRU(10, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
         x = GRU(10, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
+        x1 = GRU(10, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
+        x1 = GRU(10, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x1)
         # x = Convolution1D(50, 3, border_mode='same', activation='softplus', init='normal')(x)
         # x = Dropout(0.1)(x)
         # x = Convolution1D(20, 3, border_mode='same', activation='softplus')(x)
         # x = Dropout(0.1)(x)
-        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
         x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x1)
+        x1 = Dropout(0.2)(x1)
+        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x1)
+        x1 = Dropout(0.2)(x1)
+        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x1)
+        x1 = Dropout(0.2)(x1)
+        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x1)
+
         x2 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
         x2 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x2)
         # x = Dropout(0.1)(x)
