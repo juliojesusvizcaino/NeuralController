@@ -72,8 +72,8 @@ class MyModel(object):
 
         model = Model(input=inputs, output=[main_output, mask_output])
 
-        model.compile(optimizer='adam', loss=['mae', 'binary_crossentropy'], sample_weight_mode='temporal',
-                  metrics=[mean_absolute_error, mean_squared_error], loss_weights=[1., 1.])
+        model.compile(optimizer='adam', loss=['mae', 'binary_crossentropy'],
+                      sample_weight_mode='temporal', loss_weights=[1., 1.])
 
         return model
 
