@@ -17,8 +17,8 @@ from sklearn.preprocessing.data import StandardScaler
 
 class MyModel(object):
     def __init__(self, train, val, train_mask=None, val_mask=None,
-                 max_unroll=1502, name='model', save_dir='save/', log_dir='./logs'):
-        self.max_unroll = max_unroll
+                 max_unroll=None, name='model', save_dir='save/', log_dir='./logs'):
+        self.max_unroll = max_unroll if max_unroll is not None else train[1][0].shape[1]
         self.x, self.y = self._set_data(train)
         self.x_val, self.y_val = self._set_data(val)
         self.train_mask = self._set_mask(train_mask)
@@ -96,7 +96,7 @@ def parse():
     parser.add_argument('-r', '--resume', help='Resume training', action='store_true')
     parser.add_argument('-f', '--filename', help='Name of the file to load', default='../DataBase/left_record_no_load.hdf5')
     parser.add_argument('-s', '--savename', help='Name of the file to save')
-    parser.add_argument('-n', '--nrollout', help='Number of rollouts', type=int, default=1502)
+    parser.add_argument('-n', '--nrollout', help='Number of rollouts', type=int)
     parser.add_argument('-e', '--epoch', help='Number of epoch', type=int, default=500)
     return parser.parse_args()
 
