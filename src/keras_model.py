@@ -10,20 +10,21 @@ from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout
 from keras.layers.recurrent import GRU
 from keras.metrics import mean_squared_error, mean_absolute_error
 from keras.models import Model
+from keras.optimizers import Adam
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing.data import StandardScaler
 
 
 class MyModel(object):
-    def __init__(self, train, val, train_mask=None, val_mask=None,
-                 max_unroll=None, name='model', save_dir='save/', log_dir='./logs'):
+    def __init__(self, train, val, train_mask=None, val_mask=None, max_unroll=None,
+                 name='model', save_dir='save/', log_dir='./logs', *args, **kwargs):
         self.max_unroll = max_unroll if max_unroll is not None else train[1][0].shape[1]
         self.x, self.y = self._set_data(train)
         self.x_val, self.y_val = self._set_data(val)
         self.train_mask = self._set_mask(train_mask)
         self.val_mask = self._set_mask(val_mask)
-        self.model = self._keras_model()
+        self.model = self._keras_model(*args, **kwargs)
         self.save_path = save_dir + name
 
         if not os.path.exists(save_dir):
@@ -42,7 +43,7 @@ class MyModel(object):
         mask = [this_data[:,:self.max_unroll] for this_data in data]
         return mask
 
-    def _keras_model(self):
+    def _keras_model(self, *args, **kwargs):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
@@ -71,8 +72,8 @@ class MyModel(object):
         mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x2)
 
         model = Model(input=inputs, output=[main_output, mask_output])
-
-        model.compile(optimizer='adam', loss=['mae', 'binary_crossentropy'],
+        optimizer = Adam(*args, **kwargs)
+        model.compile(optimizer=optimizer, loss=['mae', 'binary_crossentropy'],
                       sample_weight_mode='temporal', loss_weights=[1., 1.])
 
         return model
