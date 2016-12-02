@@ -5,7 +5,7 @@ import os
 
 import h5py
 import numpy as np
-from keras.callbacks import ModelCheckpoint, TensorBoard
+from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout
 from keras.layers.recurrent import GRU
 from keras.models import Model
@@ -31,7 +31,8 @@ class MyModel(object):
 
         save = ModelCheckpoint(self.save_path + '-checkpoint.{epoch:06d}.hdf5')
         tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=10)
-        self.callbacks = [save, tensorboard]
+        earlyStopping = EarlyStopping(patience=500)
+        self.callbacks = [save, tensorboard, earlyStopping]
 
     def _set_data(self, data):
         x = data[0]
