@@ -8,7 +8,6 @@ import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard
 from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout
 from keras.layers.recurrent import GRU
-from keras.metrics import mean_squared_error, mean_absolute_error
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.preprocessing.sequence import pad_sequences
@@ -43,31 +42,21 @@ class MyModel(object):
         mask = [this_data[:,:self.max_unroll] for this_data in data]
         return mask
 
-    def _keras_model(self, *args, **kwargs):
+    def _keras_model(self, width_gru=10, depth_gru=2, width_dense=10, depth_dense=2, *args, **kwargs):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
         x = TimeDistributed(Dense(64, init='normal'))(x)
-        # x = Dropout(0.2)(x)
-        x = GRU(10, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
-        x = GRU(10, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
-        x1 = GRU(10, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
-        x1 = GRU(10, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x1)
-        # x = Convolution1D(50, 3, border_mode='same', activation='softplus', init='normal')(x)
-        # x = Dropout(0.1)(x)
-        # x = Convolution1D(20, 3, border_mode='same', activation='softplus')(x)
-        # x = Dropout(0.1)(x)
-        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x1)
-        x1 = Dropout(0.2)(x1)
-        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x1)
-        x1 = Dropout(0.2)(x1)
-        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x1)
-        x1 = Dropout(0.2)(x1)
-        x1 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x1)
+        for i in range(depth_gru):
+            x = GRU(width_gru, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
+        x1 = x
+        for i in range(depth_dense):
+            x1 = TimeDistributed(Dense(width_dense, activation='relu', init='normal'))(x1)
+            x1 = Dropout(0.2)(x1)
 
         x2 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
         x2 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x2)
-        # x = Dropout(0.1)(x)
+
         main_output = TimeDistributed(Dense(7, init='normal'), name='output')(x1)
         mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x2)
 
