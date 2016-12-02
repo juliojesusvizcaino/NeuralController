@@ -23,7 +23,7 @@ class MyModel(object):
         self.x_val, self.y_val = self._set_data(val)
         self.train_mask = self._set_mask(train_mask)
         self.val_mask = self._set_mask(val_mask)
-        self.model = self._keras_model(*args, **kwargs)
+        self.set_model(*args, **kwargs)
         self.save_path = save_dir + name
 
         if not os.path.exists(save_dir):
@@ -43,7 +43,7 @@ class MyModel(object):
         mask = [this_data[:,:self.max_unroll] for this_data in data]
         return mask
 
-    def _keras_model(self, width_gru=10, depth_gru=2, width_dense=10, depth_dense=2, *args, **kwargs):
+    def set_model(self, width_gru=10, depth_gru=2, width_dense=10, depth_dense=2, *args, **kwargs):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
@@ -66,7 +66,7 @@ class MyModel(object):
         model.compile(optimizer=optimizer, loss=['mae', 'binary_crossentropy'],
                       sample_weight_mode='temporal', loss_weights=[1., 1.])
 
-        return model
+        self.model = model
 
     def fit(self, *args, **kwargs):
         self.model.fit(x=self.x, y=self.y, validation_data=[self.x_val, self.y_val, self.val_mask],
