@@ -86,8 +86,7 @@ class MyModel(object):
 
 def parse():
     parser = argparse.ArgumentParser(description=main.__doc__)
-    parser.add_argument('-t', '--train', help='Begin training', action='store_true')
-    parser.add_argument('-f', '--filename', help='Name of the file to load')
+    parser.add_argument('filename', help='Name of the file to load')
     parser.add_argument('-n', '--nrollout', help='Number of rollouts', type=int)
     parser.add_argument('-e', '--epoch', help='Number of epoch', type=int, default=1000)
     return parser.parse_args()
