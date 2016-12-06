@@ -16,14 +16,14 @@ from sklearn.preprocessing.data import StandardScaler
 
 class MyModel(object):
     def __init__(self, train, val, train_mask=None, val_mask=None, max_unroll=None,
-                 name='model', save_dir='save/', log_dir='./logs', *args, **kwargs):
+                 save_dir='save/', log_dir='./logs', *args, **kwargs):
         self.max_unroll = max_unroll if max_unroll is not None else train[1][0].shape[1]
         self.x, self.y = self._set_data(train)
         self.x_val, self.y_val = self._set_data(val)
         self.train_mask = self._set_mask(train_mask)
         self.val_mask = self._set_mask(val_mask)
         self.set_model(*args, **kwargs)
-        self.save_path = save_dir + name
+        self.save_path = save_dir
 
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
