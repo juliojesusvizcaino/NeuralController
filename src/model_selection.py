@@ -87,9 +87,7 @@ class MyModel(object):
 def parse():
     parser = argparse.ArgumentParser(description=main.__doc__)
     parser.add_argument('-t', '--train', help='Begin training', action='store_true')
-    parser.add_argument('-r', '--resume', help='Resume training', action='store_true')
-    parser.add_argument('-f', '--filename', help='Name of the file to load', default='../DataBase/left_record_no_load.hdf5')
-    parser.add_argument('-s', '--savename', help='Name of the file to save')
+    parser.add_argument('-f', '--filename', help='Name of the file to load')
     parser.add_argument('-n', '--nrollout', help='Number of rollouts', type=int)
     parser.add_argument('-e', '--epoch', help='Number of epoch', type=int, default=1000)
     return parser.parse_args()
@@ -99,7 +97,6 @@ def main():
     args = parse()
     n_rollout = args.nrollout
     n_epoch = args.epoch
-    savename = args.savename if args.savename is not None else 'model-' + str(n_rollout) + 'unroll'
 
     seed = 1098
     np.random.seed(seed)
