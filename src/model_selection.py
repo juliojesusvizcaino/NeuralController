@@ -120,8 +120,8 @@ def main():
 
     y = pad_sequences(effort, padding='post', value=0.)
     aux_output = pad_sequences(aux_output, padding='post', value=0.)
-    x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.3)
-    x, x_val, y, y_val, y_aux, y_aux_val = train_test_split(x, y, y_aux, test_size=0.2)
+    x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.3, random_state=0)
+    x, x_val, y, y_val, y_aux, y_aux_val = train_test_split(x, y, y_aux, test_size=0.2, random_state=1)
 
     y_mask, y_test_mask = [this_y[:,:,0] for this_y in (y_aux, y_aux_test)]
     y_aux_mask, y_aux_test_mask = [np.ones(this_y.shape[:2]) for this_y in (y_aux, y_aux_test)]
