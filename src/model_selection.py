@@ -6,8 +6,7 @@ import os
 import h5py
 import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
-from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout
-from keras.layers.recurrent import GRU
+from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, Convolution1D, GRU
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.preprocessing.sequence import pad_sequences
@@ -43,16 +42,21 @@ class MyModel(object):
         mask = [this_data[:,:self.max_unroll] for this_data in data]
         return mask
 
-    def set_model(self, width_gru=10, depth_gru=2, width_dense=10, depth_dense=2, *args, **kwargs):
+    def set_model(self, gru_width=100, gru_depth=2, dense_width=50, dense_depth=2, conv=True, conv_width=48,
+                     conv_filter=3, *args, **kwargs):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
         x = TimeDistributed(Dense(64, init='normal'))(x)
-        for i in range(depth_gru):
-            x = GRU(width_gru, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
+        for i in range(gru_depth):
+            x = GRU(gru_width, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
+            if conv:
+                x = Convolution1D(conv_width, conv_filter, border_mode='same')(x)
+                x = Dropout(0.2)(x)
+
         x1 = x
-        for i in range(depth_dense):
-            x1 = TimeDistributed(Dense(width_dense, activation='relu', init='normal'))(x1)
+        for i in range(dense_depth):
+            x1 = TimeDistributed(Dense(dense_width, activation='relu', init='normal'))(x1)
             x1 = Dropout(0.2)(x1)
 
         x2 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
@@ -121,7 +125,6 @@ def main():
     y = pad_sequences(effort, padding='post', value=0.)
     aux_output = pad_sequences(aux_output, padding='post', value=0.)
     x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.3, random_state=0)
-    x, x_val, y, y_val, y_aux, y_aux_val = train_test_split(x, y, y_aux, test_size=0.2, random_state=1)
 
     y_mask, y_test_mask = [this_y[:,:,0] for this_y in (y_aux, y_aux_test)]
     y_aux_mask, y_aux_test_mask = [np.ones(this_y.shape[:2]) for this_y in (y_aux, y_aux_test)]
