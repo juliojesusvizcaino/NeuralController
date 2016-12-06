@@ -10,6 +10,7 @@ from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, C
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection._split import KFold
 from sklearn.preprocessing.data import StandardScaler
 
 
@@ -100,7 +101,8 @@ def main():
     n_epoch = args.epoch
     savename = args.savename if args.savename is not None else 'model-' + str(n_rollout) + 'unroll'
 
-    np.random.seed(1098)
+    seed = 1098
+    np.random.seed(seed)
     path = args.filename
     names = ['target_pos', 'target_speed', 'pos', 'vel', 'effort']
     with h5py.File(path, 'r') as f:
@@ -122,38 +124,47 @@ def main():
 
     y = pad_sequences(effort, padding='post', value=0.)
     aux_output = pad_sequences(aux_output, padding='post', value=0.)
-    x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.3, random_state=0)
+    x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.3, random_state=seed)
 
     y_mask, y_test_mask = [this_y[:,:,0] for this_y in (y_aux, y_aux_test)]
     y_aux_mask, y_aux_test_mask = [np.ones(this_y.shape[:2]) for this_y in (y_aux, y_aux_test)]
 
-    names = ['gru:10-1_conv:False', 'gru:10-2', 'gru:100-1', 'gru:100-2']
-    save_names = ['save_model_selection/' + name for name in names]
-    log_names = ['log_model_selection/' + name for name in names]
-
-    models = list()
-    models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
-                          train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
-                          max_unroll=n_rollout, name=save_names[0], log_dir=log_names[0],
-                          width_gru=10, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
-    models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
-                          train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
-                          max_unroll=n_rollout, name=save_names[1], log_dir=log_names[1],
-                          width_gru=10, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
-    models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
-                          train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
-                          max_unroll=n_rollout, name=save_names[2], log_dir=log_names[2],
-                          width_gru=100, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
-    models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
-                          train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
-                          max_unroll=n_rollout, name=save_names[3], log_dir=log_names[3],
-                          width_gru=100, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
+    kf = KFold(n_splits=3, shuffle=True, random_state=seed)
 
     if not os.path.exists('save_model_selection'):
         os.makedirs('save_model_selection')
 
-    for model in models:
-        model.fit(nb_epoch=n_epoch, batch_size=512)
+    for (train_index, cv_index), i in zip(kf.split(x), range(kf.n_splits)):
+        names = ['gru:10-1_conv:False_fold:' + str(i), 'gru:10-2_conv:False_fold:' + str(i),
+                 'gru:100-1_conv:False_fold:' + str(i), 'gru:100-2_conv:False_fold:' + str(i)]
+        save_names = ['save_model_selection/' + name for name in names]
+        log_names = ['log_model_selection/' + name for name in names]
+
+        this_x, this_y, this_y_aux, this_y_mask, this_y_aux_mask =\
+            [aux[train_index] for aux in [x, y, y_aux, y_mask, y_aux_mask]]
+        this_x_cv, this_y_cv, this_y_aux_cv, this_y_mask_cv, this_y_aux_mask_cv =\
+            [aux[cv_index] for aux in [x, y, y_aux, y_mask, y_aux_mask]]
+
+        models = list()
+        models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
+                              train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
+                              max_unroll=n_rollout, name=save_names[0], log_dir=log_names[0],
+                              width_gru=10, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
+        models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
+                              train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
+                              max_unroll=n_rollout, name=save_names[1], log_dir=log_names[1],
+                              width_gru=10, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
+        models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
+                              train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
+                              max_unroll=n_rollout, name=save_names[2], log_dir=log_names[2],
+                              width_gru=100, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
+        models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
+                              train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
+                              max_unroll=n_rollout, name=save_names[3], log_dir=log_names[3],
+                              width_gru=100, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
+
+        for model in models:
+            model.fit(nb_epoch=n_epoch, batch_size=512)
 
 if __name__ == '__main__':
     try:
