@@ -42,7 +42,7 @@ class MyModel(object):
         mask = [this_data[:,:self.max_unroll] for this_data in data]
         return mask
 
-    def set_model(self, gru_width=100, gru_depth=2, dense_width=50, dense_depth=2, conv=True, conv_width=48,
+    def set_model(self, gru_width=100, gru_depth=2, dense_width=50, dense_depth=2, conv=False, conv_width=48,
                      conv_filter=3, *args, **kwargs):
         inputs = Input(shape=(15,))
 
