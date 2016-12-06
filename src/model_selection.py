@@ -127,34 +127,33 @@ def main():
     y_mask, y_test_mask = [this_y[:,:,0] for this_y in (y_aux, y_aux_test)]
     y_aux_mask, y_aux_test_mask = [np.ones(this_y.shape[:2]) for this_y in (y_aux, y_aux_test)]
 
+    names = ['gru:10-1_conv:False', 'gru:10-2', 'gru:100-1', 'gru:100-2']
+    save_names = ['save_model_selection/' + name for name in names]
+    log_names = ['log_model_selection/' + name for name in names]
+
     models = list()
     models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
                           train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
-                          max_unroll=n_rollout, name=savename+'1',
-                          width_gru=10, depth_gru=1, width_dense=30, depth_dense=2, lr=0.02))
+                          max_unroll=n_rollout, name=save_names[0], log_dir=log_names[0],
+                          width_gru=10, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
     models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
                           train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
-                          max_unroll=n_rollout, name=savename+'2',
-                          width_gru=10, depth_gru=2, width_dense=10, depth_dense=2, lr=0.02))
+                          max_unroll=n_rollout, name=save_names[1], log_dir=log_names[1],
+                          width_gru=10, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
     models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
                           train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
-                          max_unroll=n_rollout, name=savename+'3',
-                          width_gru=100, depth_gru=1, width_dense=10, depth_dense=2, lr=0.02))
+                          max_unroll=n_rollout, name=save_names[2], log_dir=log_names[2],
+                          width_gru=100, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
     models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
                           train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
-                          max_unroll=n_rollout, name=savename+'4',
-                          width_gru=100, depth_gru=2, width_dense=10, depth_dense=2, lr=0.02))
-    models_names = list()
-    models_names.append('GRU: width=10, depth=1\nDense: width=30, depth=2')
-    models_names.append('GRU: width=10, depth=2\nDense: width=30, depth=2')
-    models_names.append('GRU: width=50, depth=1\nDense: width=30, depth=2')
-    models_names.append('GRU: width=50, depth=2\nDense: width=30, depth=2')
+                          max_unroll=n_rollout, name=save_names[3], log_dir=log_names[3],
+                          width_gru=100, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
 
-    if not os.path.exists('save'):
-        os.makedirs('save')
+    if not os.path.exists('save_model_selection'):
+        os.makedirs('save_model_selection')
 
     for model in models:
-        model.fit(nb_epoch=n_epoch, batch_size=32)
+        model.fit(nb_epoch=n_epoch, batch_size=512)
 
 if __name__ == '__main__':
     try:
