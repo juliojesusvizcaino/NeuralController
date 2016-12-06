@@ -8,7 +8,6 @@ import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, Convolution1D, GRU
 from keras.models import Model
-from keras.optimizers import Adam
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing.data import StandardScaler
@@ -66,9 +65,8 @@ class MyModel(object):
         mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x2)
 
         model = Model(input=inputs, output=[main_output, mask_output])
-        optimizer = Adam(*args, **kwargs)
-        model.compile(optimizer=optimizer, loss=['mae', 'binary_crossentropy'],
-                      sample_weight_mode='temporal', loss_weights=[1., 1.])
+        model.compile(loss=['mae', 'binary_crossentropy'],
+                      sample_weight_mode='temporal', loss_weights=[1., 1.], *args, **kwargs)
 
         self.model = model
 
@@ -141,11 +139,11 @@ def main():
     models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
                           train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
                           max_unroll=n_rollout, name=savename+'3',
-                          width_gru=50, depth_gru=1, width_dense=10, depth_dense=2, lr=0.02))
+                          width_gru=100, depth_gru=1, width_dense=10, depth_dense=2, lr=0.02))
     models.append(MyModel(train=[x, [y, y_aux]], val=[x_test, [y_test, y_aux_test]],
                           train_mask=[y_mask, y_aux_mask], val_mask=[y_test_mask, y_aux_test_mask],
                           max_unroll=n_rollout, name=savename+'4',
-                          width_gru=50, depth_gru=2, width_dense=10, depth_dense=2, lr=0.02))
+                          width_gru=100, depth_gru=2, width_dense=10, depth_dense=2, lr=0.02))
     models_names = list()
     models_names.append('GRU: width=10, depth=1\nDense: width=30, depth=2')
     models_names.append('GRU: width=10, depth=2\nDense: width=30, depth=2')
