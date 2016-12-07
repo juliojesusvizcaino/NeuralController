@@ -4,4 +4,19 @@ Una red neuronal artificial es un conjunto de algoritmos de aprendizaje automát
 \subsection{Arquitecturas}
 En función de la topología de la red, se contemplan dos tipos fundamentales:
 \subsubsection{Propagación hacia delante}
-Las conexiones entre las neuronas es de un solo sentido, de modo que no se forman bucles entre ninguna de las neuronas (fig. \ref{imagenes/apendices/red_neuronal/feed_forward})
+Las conexiones entre las neuronas es de un solo sentido, de modo que no se forman bucles entre ninguna de las neuronas (figura \ref{fig:apendices/feedforward})
+
+\begin{figure}
+	\centering
+	\begin{neuralnetwork}[height=4.7]
+		\newcommand{\nodetextclear}[2]{}
+		\newcommand{\nodetextx}[2]{$x_#2$}
+		\newcommand{\nodetexty}[2]{$y_#2$}
+		\inputlayer[count=4, bias=false, title=Capa de\\entrada, text=\nodetextx]
+		\hiddenlayer[count=5, bias=false, title=Capa\\oculta, text=\nodetextclear] \linklayers
+		\outputlayer[count=3, title=Capa de\\salida, text=\nodetexty] \linklayers
+	\end{neuralnetwork}
+	\caption{Red neuronal de propagación hacia adelante}
+	\label{fig:apendices/feedforward}
+\end{figure}
+
