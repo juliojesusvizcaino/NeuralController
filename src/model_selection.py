@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import argparse
-import glob
 import os
+import re
 
 import h5py
 import numpy as np
@@ -9,8 +9,7 @@ from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, Convolution1D, GRU
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection._split import KFold
+from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing.data import StandardScaler
 
 
@@ -23,7 +22,7 @@ class MyModel(object):
         self.train_mask = self._set_mask(train_mask)
         self.val_mask = self._set_mask(val_mask)
         self.set_model(*args, **kwargs)
-        self.save_path = save_dir
+        self.save_path = save_dir if save_dir[-1] is '/' else save_dir + '/'
 
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
@@ -76,12 +75,14 @@ class MyModel(object):
                        sample_weight=self.train_mask, callbacks=self.callbacks, *args, **kwargs)
 
     def load(self):
-        file = max(glob.glob(self.save_path + '*'))
-        self.model.load_weights(file)
+        this_file = max(os.listdir(self.save_path))
+        self.model.load_weights(this_file)
+        n = re.search(r'\D*(\d+)\.hdf5', this_file).group(1)
+        return n
 
     def resume(self, *args, **kwargs):
-        self.load()
-        self.fit(*args, **kwargs)
+        init_epoch = self.load()
+        self.fit(initial_epoch=init_epoch, *args, **kwargs)
 
 
 def parse():
