@@ -30,7 +30,7 @@ class MyModel(object):
 
         save = ModelCheckpoint(self.save_path + '-checkpoint.{epoch:06d}.hdf5')
         tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=10)
-        earlyStopping = EarlyStopping(patience=500)
+        earlyStopping = EarlyStopping(patience=5000)
         self.callbacks = [save, tensorboard, earlyStopping]
 
     def _set_data(self, data):
@@ -144,19 +144,19 @@ def main():
         models = list()
         models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
                               train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
-                              max_unroll=n_rollout, name=save_names[0], log_dir=log_names[0],
+                              max_unroll=n_rollout, save_dir=save_names[0], log_dir=log_names[0],
                               width_gru=10, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
         models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
                               train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
-                              max_unroll=n_rollout, name=save_names[1], log_dir=log_names[1],
+                              max_unroll=n_rollout, save_dir=save_names[1], log_dir=log_names[1],
                               width_gru=10, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
         models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
                               train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
-                              max_unroll=n_rollout, name=save_names[2], log_dir=log_names[2],
+                              max_unroll=n_rollout, save_dir=save_names[2], log_dir=log_names[2],
                               width_gru=100, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
         models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
                               train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
-                              max_unroll=n_rollout, name=save_names[3], log_dir=log_names[3],
+                              max_unroll=n_rollout, save_dir=save_names[3], log_dir=log_names[3],
                               width_gru=100, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
 
         for model in models:
