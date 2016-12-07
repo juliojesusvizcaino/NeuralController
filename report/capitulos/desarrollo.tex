@@ -262,6 +262,47 @@ De esta manera, se obtienen vectores de la misma longitud (en el tiempo) tanto e
 \paragraph{Ráfagas}
 También se percibió la llegada a ráfagas en los mensajes provenientes del robot. Esto no supone un problema para preparar los datos, pero sí lo es a la hora de realizar un controlador realimentado que requiere la información que proporciona el robot sin desfases. El controlador propuesto en este trabajo no es realimentado, pero de serlo, una posible solución sería implementar el controlador en el propio robot (no ejecutarlo en el ordenador), aunque para ello habría que tomar nuevamente la base de datos o ajustarla a la frecuencia de generación de mensajes del robot. Otra posible solución consistiría en un predictor de posiciones y velocidades que ofrezcan al controlador esta información cuando no disponga de la misma. Por ejemplo, supongamos que en un instante concreto, llega una ráfaga de tres posiciones, velocidades y torques provenientes del robot. Esto significa que, dos instantes anteriores, el ordenador no ha obtenido ninguna información, por lo que la última posición, velocidad y torques conocidos son los obtenidos hace dos instantes temporales. En este caso, el predictor generaría 2 posiciones y velocidades (los torques serían la salida del sistema) para los instantes temporales que no disponen de información directa.
 
+
+\section{Red Neuronal}
+A continuación se estudia la viabilidad de la implementación de un controlador a partir del propio de Baxter basado en redes neuronales profundas (deep learning).
+\subsection{Viabilidad}
+El primer problema a enfrentarse es el de demostrar que la red neuronal es capaz de aprender algo de los datos extraídos del controlador del Baxter. Por la capacidad de detectar colisiones sabemos que es un sistema realimentado, posiblemente con un controlador PID.
+
+Se podría realizar un controlador donde el modelo dinámico (controlador feedforward) fuera desempeñado por la red neuronal, y donde la realimentación fuera desempeñada por el controlador PID. También podría implementarse la realimentación como otra red neuronal, pero ambas aproximaciones tienen el problema de enfrentarse a la realimentación y al tiempo real (a una frecuencia de realimentación de 100Hz). Las redes neuronales profundas tienen el problema de ser pesadas en el cómputo (debido a las no linealidades usadas para la activación de las neuronas), poniendo en riesgo la capacidad de afrontar el problema en tiempo real.
+
+Es por esto por lo que se decide hacer un controlador sin realimentación, donde los datos de entrada sean posiciones objetivo, posiciones en el momento de iniciar el movimiento, y velocidad objetivo, siendo los de salida una sucesión de torques a aplicar para alcanzar la posición deseada.
+
+Para ello se elige una arquitectura basada en redes neuronales realimentadas, ya que las no realimentadas tienen la limitación de generar la misma salida ante la misma entrada, y siendo nuestra entrada única (debido a que el sistema no es realimentado), generaríamos siempre la misma salida, en vez de la sucesión de torques deseada.
+
+Nos encontramos con el problema de, si el controlador implementado por Baxter es realimentado, ¿puede un modelo no realimentado aprender de este? % Quitar pregunta?
+El controlador del Baxter tiene una estructura como la mostrada en la figura \ref{fig:desarrollo/feedforward_controller}. El funcionamiento es el siguiente:
+
+\begin{enumerate}
+\item El controlador realimentado genera una señal torque a partir de la realimentación de posición del sistema y la posición deseada.
+\item El controlador feedforward tiene en cuenta el modelo interno del robot y ajusta la señal de control generada por el controlador realimentado.
+\item Se transmite la señal y el robot genera el torque enviado.
+\item La aplicación genera una nueva posición que es recibido por los sensores y usado para la realimentación.
+\end{enumerate}
+
+\begin{figure}[]
+	\centering
+	\includegraphics[width=2.5in]{}
+	\caption{Sistema de control de Baxter}
+	\label{fig:desarrollo/feedforward_controller}
+\end{figure}
+
+El controlador realimentado no es más que un sistema (lineal o no) que a ciertas entradas genera ciertas salidas (en función de su historia o no). El controlador feedforward igualmente es un sistema que tiene en cuenta el modelo dinámico del robot, y por lo tanto los dos sistemas son reproducibles por una red neuronal. Por último, tenemos la realimentación, y es en este aspecto, donde la red neuronal tendrá que aprender a producir estimaciones de la salida provocada (posiciones de las articulaciones) al aplicar los torques.
+
+Por lo tanto, la viabilidad de nuestro controlador depende de la capacidad de la red para generar dicha estimación de la realimentación.
+
+Es por ello por lo que se utilizarán redes neuronales recurrentes, ya que tanto el controlador realimentado, como el feedforward, como la realimentación en sí misma son sistemas que dependen de la historia de las señales de las que dependen, y esto es exactamente lo que hacen este tipo de redes.
+
+% explicar pid
+% explicar controlador feedforward
+% explicar error distal
+% contar historia del proyecto:
+% 	- obtener parámetros óptimos del PID
+
 % ros: mensajes con marcas temporales y secuencias
 % rosbag
 
