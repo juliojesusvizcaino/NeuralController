@@ -154,10 +154,11 @@ def main():
 
     y = pad_sequences(effort, padding='post', value=0.)
     aux_output = pad_sequences(aux_output, padding='post', value=0.)
-    x, x_test, y, y_test, y_aux, y_aux_test = train_test_split(x, y, aux_output, test_size=0.3, random_state=seed)
+    y_mask = aux_output[:,:,0]
+    y_aux_mask = np.ones(aux_output.shape[:2])
 
-    y_mask, y_test_mask = [this_y[:,:,0] for this_y in (y_aux, y_aux_test)]
-    y_aux_mask, y_aux_test_mask = [np.ones(this_y.shape[:2]) for this_y in (y_aux, y_aux_test)]
+    x, x_test, y, y_test, y_aux, y_aux_test, y_mask, y_test_mask, y_aux_mask, y_aux_test_mask = \
+        train_test_split(x, y, aux_output, y_mask, y_aux_mask, test_size=0.3, random_state=seed)
 
     kf = KFold(n_splits=3, shuffle=True, random_state=seed)
 
