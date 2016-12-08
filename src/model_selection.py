@@ -5,6 +5,7 @@ import re
 from glob import glob
 
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, Convolution1D, GRU
@@ -12,22 +13,26 @@ from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing.data import StandardScaler
-import matplotlib.pyplot as plt
 
 
 class MyModel(object):
-    def __init__(self, train, val, train_mask=None, val_mask=None, max_unroll=None,
-                 save_dir='save/', log_dir='./logs', *args, **kwargs):
+    def __init__(self, train, val, test=None, train_mask=None, val_mask=None, test_mask=None, max_unroll=None,
+                 save_dir='save/', log_dir='logs/', img_dir='imgs/', *args, **kwargs):
         self.max_unroll = max_unroll if max_unroll is not None else train[1][0].shape[1]
         self.x, self.y = self._set_data(train)
         self.x_val, self.y_val = self._set_data(val)
+        self.x_test, self.y_test = self._set_data(test) if test is not None else (None, None)
         self.train_mask = self._set_mask(train_mask)
         self.val_mask = self._set_mask(val_mask)
+        self.test_mask = self._set_mask(test_mask)
         self.set_model(*args, **kwargs)
         self.save_path = save_dir if save_dir[-1] is '/' else save_dir + '/'
+        self.img_path = img_dir if img_dir[-1] is '/' else img_dir + '/'
 
-        if not os.path.exists(save_dir):
-            os.mkdir(save_dir)
+        if not os.path.exists(self.save_path):
+            os.mkdir(self.save_path)
+        if not os.path.exists(self.img_path):
+            os.makedirs(self.img_path)
 
         save = ModelCheckpoint(self.save_path + '-checkpoint.{epoch:06d}.hdf5')
         tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=10)
@@ -44,7 +49,7 @@ class MyModel(object):
         return mask
 
     def set_model(self, gru_width=100, gru_depth=2, dense_width=50, dense_depth=2, conv=False, conv_width=48,
-                     conv_filter=3, *args, **kwargs):
+                  conv_filter=3, *args, **kwargs):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
@@ -85,6 +90,29 @@ class MyModel(object):
     def resume(self, *args, **kwargs):
         init_epoch = self.load()
         self.fit(initial_epoch=init_epoch, *args, **kwargs)
+
+    def save_figs(self, n=100):
+        plot_names = ['train', 'cv', 'test']
+        joint_names = ['s0', 's1', 'e0', 'e1', 'w0', 'w1', 'w2', 'mask']
+        f, axs = plt.subplots(8, 1, figsize=(15, 20))
+        for inp, outp, outp_aux, plot_name in zip((self.x, self.x_val, self.x_test),
+                                                  (self.y[0], self.y_val[0], self.y_test[0]),
+                                                  (self.y[1], self.y_val[1], self.y_test[1]),
+                                                  plot_names):
+            out, out_aux = self.model.predict(inp, batch_size=512)
+            for row, row_aux, row_out, row_aux_out, index in \
+                    zip(outp, outp_aux, out, out_aux, xrange(len(outp))):
+                if index % n == 0:
+                    for ax, joint, joint_out, joint_name in \
+                            zip(axs, np.append(row.T, row_aux.T, axis=0),
+                                np.append(row_out.T, row_aux_out.T, axis=0), joint_names):
+                        ax.clear()
+                        ax.plot(joint)
+                        ax.plot(joint_out)
+                        ax.set_title(joint_name)
+
+                    f.savefig(self.img_path+plot_name+str(index)+'.pdf', dpi='400')
+        plt.close('all')
 
 
 def parse():
@@ -143,59 +171,28 @@ def main():
         log_names = ['log_model_selection/' + name for name in names]
         img_names = ['imgs/' + name + '/' for name in names]
 
-        this_x, this_y, this_y_aux, this_y_mask, this_y_aux_mask =\
+        this_x, this_y, this_y_aux, this_y_mask, this_y_aux_mask = \
             [aux[train_index] for aux in [x, y, y_aux, y_mask, y_aux_mask]]
-        this_x_cv, this_y_cv, this_y_aux_cv, this_y_mask_cv, this_y_aux_mask_cv =\
+        this_x_cv, this_y_cv, this_y_aux_cv, this_y_mask_cv, this_y_aux_mask_cv = \
             [aux[cv_index] for aux in [x, y, y_aux, y_mask, y_aux_mask]]
 
-        models = list()
-        models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
-                              train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
-                              max_unroll=n_rollout, save_dir=save_names[0], log_dir=log_names[0],
-                              width_gru=10, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
-        models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
-                              train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
-                              max_unroll=n_rollout, save_dir=save_names[1], log_dir=log_names[1],
-                              width_gru=10, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
-        models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
-                              train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
-                              max_unroll=n_rollout, save_dir=save_names[2], log_dir=log_names[2],
-                              width_gru=100, depth_gru=1, width_dense=50, depth_dense=2, optimizer='adam'))
-        models.append(MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
-                              train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
-                              max_unroll=n_rollout, save_dir=save_names[3], log_dir=log_names[3],
-                              width_gru=100, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
+        widths_gru = [10, 10, 100, 100]
+        depths_gru = [1, 2, 1, 2]
 
-        for model, img_name in zip(models, img_names):
+        for width_gru, depth_gru, save_name, log_name, img_name in \
+                zip(widths_gru, depths_gru, save_names, log_names, img_names):
+            model = MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
+                            train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
+                            test=[x_test, [y_test, y_aux_test]], test_mask=[y_test_mask, y_aux_test_mask],
+                            max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
+                            width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2, optimizer='adam')
             if args.train:
                 model.fit(nb_epoch=n_epoch, batch_size=512)
             elif args.resume:
                 model.resume(nb_epoch=n_epoch, batch_size=512)
             elif args.visualization:
                 model.load()
-                if not os.path.exists(img_name):
-                    os.makedirs(img_name)
-                plot_names = ['train', 'cv', 'test']
-                joint_names = ['s0', 's1', 'e0', 'e1', 'w0', 'w1', 'w2', 'mask']
-                f, axs = plt.subplots(8, 1, figsize=(15, 20))
-                for inp, outp, outp_aux, plot_name in zip((this_x, this_x_cv, x_test),
-                                                          (this_y, this_y_cv, y_test),
-                                                          (this_y_aux, this_y_aux_cv, y_aux_test),
-                                                          plot_names):
-                    out, out_aux = model.model.predict(inp, batch_size=512)
-                    for row, row_aux, row_out, row_aux_out, index in\
-                            zip(outp, outp_aux, out, out_aux, xrange(len(this_y))):
-                        if index%100 == 0:
-                            for ax, joint, joint_out, joint_name in\
-                                    zip(axs, np.append(row.T, row_aux.T, axis=0),
-                                        np.append(row_out.T, row_aux_out.T, axis=0), joint_names):
-                                ax.clear()
-                                ax.plot(joint)
-                                ax.plot(joint_out)
-                                ax.set_title(joint_name)
-
-                            f.savefig(img_name+plot_name+str(index)+'.pdf', dpi='400')
-                plt.close('all')
+                model.save_figs()
 
 
 if __name__ == '__main__':
