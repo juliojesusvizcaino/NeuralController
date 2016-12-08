@@ -7,8 +7,9 @@
 %\end{enumerate}
 %Finalmente se abordará una etapa de extracción de resultados y evaluación del modelo desarrollado en el marco de tareas de movimientos de alcance de un objetivo.
 
-\chapter{Desarrollo}
-\section{Mecanismos de control en Baxter}
+\chapter{Resolución}
+\section{Desarrollo}
+\subsection{Mecanismos de control en Baxter}
 % Explicar hardware y software de baxter (procesador, JCBs, ros, interfaz de comunicación (baxter.sh))
 El robot cuenta con dos brazos, con 7 articulaciones (grados de libertad) cada uno. Las articulaciones son rotación del hombro (s0), traslación del hombro (s1), rotación del codo (e0), traslación del codo (e1), rotación de la muñeca (w0), traslación de la muñeca (w1), y una última rotación de la muñeca (w2), a fin de satisfacer dicho movimiento cuando la pinza se encuentra insertada. Dichas articulaciones se pueden observar en la figura \ref{fig:desarrollo/joints}.
 
@@ -59,7 +60,7 @@ Art.                    & (rad) Mín & (rad) Máx & (rad) Rango & (rad/s) Vel m�
 \end{table}
 % Ratio de velocidad
 
-\subsection{Control por posición}
+\subsubsection{Control por posición}
 El control por posición consiste en alcanzar las posiciones objetivo para cada una de las articulaciones. El modo de control en el mensaje JointCommand es el 1.
 
 La orden donde todas las articulaciones se ponen en la posición 0 corresponde con el brazo totalmente estirado y con el hombro, codo y muñeca mirando hacia abajo. Las traslaciones y rotaciones se corresponden con los de la figura \ref{fig:desarrollo/joint_map}.
@@ -131,7 +132,7 @@ Como se puede observar, Baxter aplica unos filtros para evitar y detectar colisi
 \item [Escalado de alta velocidad] Cuando la velocidad del brazo supera los 0.2 m/s, las regiones de seguridad que el robot simula internamente aumentan. Cuando se tocan estas regiones, la velocidad se escala y la posición se recalcula.
 \end{itemize}
 
-\subsection{Control por posición sin procesar}
+\subsubsection{Control por posición sin procesar}
 Este modo de control, al igual que el anterior, tiene como objetivo alcanzar la posición deseada para cada articulación. Se diferencia en los filtros que aplica (figura \ref{fig:desarrollo/raw_filters}).
 
 \begin{enumerate}
@@ -144,7 +145,7 @@ Como se puede observar, este es un modo de control más avanzado, ya que no tien
 
 El modo de control en el mensaje JointCommand es el 4.
 
-\subsection{Control por velocidad}
+\subsubsection{Control por velocidad}
 En este modo de control, lo que se busca es adquirir la velocidad objetivo para cada articulación. El modo de control en el mensaje JointCommand es el 2. Al igual que en los modos anteriores, se aplican una serie de filtros (figura \ref{fig:desarrollo/vel_filters}).
 
 \begin{enumerate}
@@ -157,7 +158,7 @@ En este modo de control, lo que se busca es adquirir la velocidad objetivo para 
 
 El dejar de enviar velocidades si se exceden los límites de las articulaciones es una medida de seguridad que exige al programador tener el control sobre las posiciones que puede alcanzar el brazo.
 
-\subsection{Control por torque}
+\subsubsection{Control por torque}
 El control por torque consiste en el modo de más bajo nivel que se puede controlar el robot Baxter. Los torques que enviemos serán aplicados por los controladores, haciendo uso solamente de los siguientes filtros (figura \ref{fig:desarrollo/torque_filters}):
 
 \begin{enumerate}
@@ -170,12 +171,12 @@ La compensación de la gravedad se puede desactivar mandando un mensaje vacío a
 De esta manera, un torque aplicado de 0 en todas las articulaciones, mantendrá el brazo en un estado de gravedad 0 si la compensación esta activa. De no estarlo, el brazo caerá en peso muerto.
 	
 
-\section{Obtención de datos}
+\subsection{Obtención de datos}
 A fin de conseguir un controlador basado en el propio de Baxter, se ha de obtener una base de datos de movimientos de los cuales aprender. Esta base de datos consistirá en las posiciones, velocidades y torques registradas por el robot, así como de las órdenes enviadas sobre la posición deseada y la ratio de velocidad deseada.
 
 Para ello, haremos uso de la interfaz de programación de aplicaciones (API) para el lenguaje Python que ofrece Baxter. Esta API cuenta con una serie de funciones que nos permitirán mover el robot abstrayéndonos de las instrucciones ROS que ejecuta. Para la toma de datos, se hará uso de la herramienta \verb|rosbag| que proporciona ROS.
 
-\subsection{API de Python}
+\subsubsection{API de Python}
 La API tiene como objetivo disponer una interfaz basada en el lenguaje de programación Python para controlar y monitorizar el robot Baxter, ejecutando en su base las correspondientes instrucciones ROS. Para ello, cuenta con una serie de módulos orientados a los distintos componentes del robot (brazos, pinzas, cámara...).
 
 Se hará uso del módulo \verb|brazo| para realizar el movimiento del mismo. Por motivos de disposición del robot en el laboratorio, se extraerá la base de datos haciendo uso del brazo izquierdo.
@@ -184,7 +185,7 @@ Dentro de este módulo, se hará uso de las funciones \verb|set_joint_position_s
 
 Un dato a tener en cuenta es que la función \verb|move_to_joint_positions(positions)| realiza un filtro paso baja de la diferencia de posiciones (actual y deseada) en el tiempo, ofreciendo un movimiento más fluido.
 
-\subsection{rosbag}
+\subsubsection{rosbag}
 \verb|rosbag| es una herramienta para grabar el paso de mensajes realizados sobre los temas que se le ofrecen como parámetros. Tiene la peculiaridad de grabar los mensajes enteros, lo que significa que registra tanto el mensaje en sí, como la marca temporal y de secuencia que cada mensaje tiene asociadas. Esto será útil más adelante para sincronizar los mensajes de posición y velocidad relativa deseadas (generadas en el ordenador local) con los mensajes de posición, velocidad y torque generados por el robot y enviados por tcp/ip al ordenador.
 
 Los temas que registraremos serán:
@@ -195,7 +196,7 @@ Los temas que registraremos serán:
 \item \verb|/robot/limb/left/joint_command| Posiciones deseadas.
 \end{itemize}
 
-\subsection{Ejecución}
+\subsubsection{Ejecución}
 El espacio vectorial de las siete dimensiones formadas por cada una de las articulaciones del Baxter se muestreará de manera uniforme, a fin de obtener una base de datos representativa del controlador que estamos aprendiendo. Esto significa que, para cada movimiento, se elegirán siete posiciones objetivo (una por articulación) de acuerdo a una distribución uniforme sobre el rango de cada articulación. De igual manera se elegirá una ratio de velocidad objetivo con distribución uniforme entre 0 y 1. El tiempo máximo empleado para cada movimiento será de 15 segundos, ya que es tiempo suficiente para permitir el movimiento entre puntos distantes entre sí a una velocidad baja.
 
 Para realizar una primera aproximación de la manera en la que la red neuronal aprende, se han realizado una serie de base de datos con distintas características, para así aislar los potenciales problemas con los que nos enfrentamos.
@@ -208,17 +209,17 @@ Para realizar una primera aproximación de la manera en la que la red neuronal a
 
 Adicionalmente, se ha obtenido un conjunto de datos con combinaciones de distintas articulaciones, así como del brazo con las pinzas anexas.
 
-\subsection{Tratamiento}
+\subsubsection{Tratamiento}
 Una vez obtenida las distintas bases de datos, se preparan para la fase de entrenamiento y evaluación de la red neuronal.
 
-\subsubsection{Ficheros .bag}
+\paragraph{Ficheros .bag}
 El primer paso consiste en transformar la base de datos en tipos de datos que entienda el lenguaje de programación Python.
 
 Los ficheros obtenidos con \verb|rosbag| tienen la extensión \verb|.bag|, y consisten en ficheros conteniendo mensajes sobre los que se iteran. De esta manera, iteramos sobre cada mensaje y leemos su contenido, que consiste en el tema del cual proviene el mensaje, una marca temporal de su recepción por \verb|rosbag|, y del mensaje en sí mismo.
 
 La marca temporal corresponde al tiempo del reloj interno del ordenador en el cual se recibe el mensaje. Dado que la conexión entre el robot y el ordenador se realiza por tcp/ip, este tiempo diferirá del de generación en el robot. Para paliar con este problema, \verb|ROS| dispone una marca temporal dentro del cuerpo del mensaje con el instante de creación del mensaje en el robot (de acuerdo a su reloj interno), además de un número de secuencia para ordenar los mensajes en el ordenador.
 
-\paragraph{Error en frecuencia}
+\subparagraph{Error en frecuencia}
 Gracias a esta información, se percibió un error en frecuencia entre el reloj del ordenador y el del robot. Esto significa que, a una frecuencia de generación de mensajes de 100 Hz, el ordenador generó 100 posiciones y velocidades deseadas por segundo (suponiendo que es el que tiene el reloj ajustado correctamente), mientras que el robot generó 99 posiciones, velocidades y torques actuales. Para solventar este problema, en primera instancia se representó gráficamente la diferencia de mensajes obtenidos por parte del ordenador y el robot en función del tiempo (figura \ref{fig:desarrollo/diferencia}).
 
 \begin{figure}[]
@@ -259,13 +260,13 @@ Dado que el control lo vamos a realizar desde el ordenador, adaptamos los mensaj
 
 De esta manera, se obtienen vectores de la misma longitud (en el tiempo) tanto enviados como recibidos.
 
-\paragraph{Ráfagas}
+\subparagraph{Ráfagas}
 También se percibió la llegada a ráfagas en los mensajes provenientes del robot. Esto no supone un problema para preparar los datos, pero sí lo es a la hora de realizar un controlador realimentado que requiere la información que proporciona el robot sin desfases. El controlador propuesto en este trabajo no es realimentado, pero de serlo, una posible solución sería implementar el controlador en el propio robot (no ejecutarlo en el ordenador), aunque para ello habría que tomar nuevamente la base de datos o ajustarla a la frecuencia de generación de mensajes del robot. Otra posible solución consistiría en un predictor de posiciones y velocidades que ofrezcan al controlador esta información cuando no disponga de la misma. Por ejemplo, supongamos que en un instante concreto, llega una ráfaga de tres posiciones, velocidades y torques provenientes del robot. Esto significa que, dos instantes anteriores, el ordenador no ha obtenido ninguna información, por lo que la última posición, velocidad y torques conocidos son los obtenidos hace dos instantes temporales. En este caso, el predictor generaría 2 posiciones y velocidades (los torques serían la salida del sistema) para los instantes temporales que no disponen de información directa.
 
 
-\section{Red Neuronal}
+\subsection{Red Neuronal}
 A continuación se estudia la viabilidad de la implementación de un controlador a partir del propio de Baxter basado en redes neuronales profundas (deep learning).
-\subsection{Viabilidad}
+\subsubsection{Viabilidad}
 El primer problema a enfrentarse es el de demostrar que la red neuronal es capaz de aprender algo de los datos extraídos del controlador del Baxter. Por la capacidad de detectar colisiones sabemos que es un sistema realimentado, posiblemente con un controlador PID.
 
 Se podría realizar un controlador donde el modelo dinámico (controlador feedforward) fuera desempeñado por la red neuronal, y donde la realimentación fuera desempeñada por el controlador PID. También podría implementarse la realimentación como otra red neuronal, pero ambas aproximaciones tienen el problema de enfrentarse a la realimentación y al tiempo real (a una frecuencia de realimentación de 100Hz). Las redes neuronales profundas tienen el problema de ser pesadas en el cómputo (debido a las no linealidades usadas para la activación de las neuronas), poniendo en riesgo la capacidad de afrontar el problema en tiempo real.
@@ -326,6 +327,8 @@ El controlador realimentado no es más que un sistema (lineal o no) que a cierta
 Por lo tanto, la viabilidad de nuestro controlador depende de la capacidad de la red para generar dicha estimación de la realimentación.
 
 Es por ello por lo que se utilizarán redes neuronales recurrentes, ya que tanto el controlador realimentado, como el feedforward, como la realimentación en sí misma son sistemas que dependen de la historia de las señales de las que dependen, y esto es exactamente lo que hacen este tipo de redes.
+
+\section{Resultados}
 
 % explicar pid
 % explicar controlador feedforward
