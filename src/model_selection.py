@@ -202,8 +202,8 @@ def main():
         this_x_cv, this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv, this_mask_cv, this_aux_mask_cv = \
             [a_[cv_index] for a_ in [x, torque, pos, vel, aux, mask, aux_mask]]
 
-        widths_gru = [10, 10, 100, 100]
-        depths_gru = [1, 2, 1, 2]
+        widths_gru = [1000, 100]
+        depths_gru = [1, 2]
 
         for width_gru, depth_gru, save_name, log_name, img_name in \
                 zip(widths_gru, depths_gru, save_names, log_names, img_names):
