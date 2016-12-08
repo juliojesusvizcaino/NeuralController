@@ -60,20 +60,28 @@ class MyModel(object):
                 x = Convolution1D(conv_width, conv_filter, border_mode='same')(x)
                 x = Dropout(0.2)(x)
 
-        x1 = x
+        x_torque = x
         for i in range(dense_depth):
-            x1 = TimeDistributed(Dense(dense_width, activation='relu', init='normal'))(x1)
-            x1 = Dropout(0.2)(x1)
+            x_torque = TimeDistributed(Dense(dense_width, activation='relu', init='normal'))(x_torque)
+            x_torque = Dropout(0.2)(x_torque)
 
-        x2 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
-        x2 = TimeDistributed(Dense(50, activation='relu', init='normal'))(x2)
+        x_mask = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
+        x_mask = TimeDistributed(Dense(50, activation='relu', init='normal'))(x_mask)
 
-        main_output = TimeDistributed(Dense(7, init='normal'), name='output')(x1)
-        mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x2)
+        x_pos = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
+        x_pos = TimeDistributed(Dense(50, activation='relu', init='normal'))(x_pos)
 
-        model = Model(input=inputs, output=[main_output, mask_output])
-        model.compile(loss=['mae', 'binary_crossentropy'],
-                      sample_weight_mode='temporal', loss_weights=[1., 1.], *args, **kwargs)
+        x_vel = TimeDistributed(Dense(50, activation='relu', init='normal'))(x)
+        x_vel = TimeDistributed(Dense(50, activation='relu', init='normal'))(x_vel)
+
+        torque_output = TimeDistributed(Dense(7, init='normal'), name='torque')(x_torque)
+        pos_output = TimeDistributed(Dense(7, init='normal'), name='pos')(x_pos)
+        vel_output = TimeDistributed(Dense(7, init='normal'), name='vel')(x_vel)
+        mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='mask')(x_mask)
+
+        model = Model(input=inputs, output=[torque_output, pos_output, vel_output, mask_output])
+        model.compile(loss=['mae', 'mae', 'mae', 'binary_crossentropy'],
+                      sample_weight_mode='temporal', loss_weights=[1., 1., 1., 1.], *args, **kwargs)
 
         self.model = model
 
@@ -182,18 +190,19 @@ def main():
         log_names = ['log_model_selection/' + name for name in names]
         img_names = ['imgs/' + name + '/' for name in names]
 
-        this_x, this_y, this_y_aux, this_y_mask, this_y_aux_mask = \
-            [a_[train_index] for a_ in [x, torque, aux, mask, aux_mask]]
-        this_x_cv, this_y_cv, this_y_aux_cv, this_y_mask_cv, this_y_aux_mask_cv = \
-            [a_[cv_index] for a_ in [x, torque, aux, mask, aux_mask]]
+        this_x, this_torque, this_pos, this_vel, this_aux, this_mask, this_aux_mask = \
+            [a_[train_index] for a_ in [x, torque, pos, vel, aux, mask, aux_mask]]
+        this_x_cv, this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv, this_mask_cv, this_aux_mask_cv = \
+            [a_[cv_index] for a_ in [x, torque, pos, vel, aux, mask, aux_mask]]
 
         widths_gru = [10, 10, 100, 100]
         depths_gru = [1, 2, 1, 2]
 
         for width_gru, depth_gru, save_name, log_name, img_name in \
                 zip(widths_gru, depths_gru, save_names, log_names, img_names):
-            model = MyModel(train=[this_x, [this_y, this_y_aux]], val=[this_x_cv, [this_y_cv, this_y_aux_cv]],
-                            train_mask=[this_y_mask, this_y_aux_mask], val_mask=[this_y_mask_cv, this_y_aux_mask_cv],
+            model = MyModel(train=[this_x, [this_torque, this_pos, this_vel, this_aux]],
+                            val=[this_x_cv, [this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv]],
+                            train_mask=[this_mask]*3+[this_aux_mask], val_mask=[this_mask_cv]*3+[this_aux_mask_cv],
                             test=[x_test, [torque_test, aux_test]], test_mask=[mask_test, aux_mask_test],
                             max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
                             width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2, optimizer='adam')
