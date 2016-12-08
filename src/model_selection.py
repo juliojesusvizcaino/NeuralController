@@ -151,7 +151,7 @@ def main():
     path = args.filename
     names = ['target_pos', 'target_speed', 'pos', 'vel', 'effort']
     with h5py.File(path, 'r') as f:
-        (target_pos, target_speed, pos, vel, effort) = [[np.array(val) for val in f[name].values()] for name in names]
+        (target_pos, target_speed, pos, vel, effort) = [[np.array(val) for val in f[name_].values()] for name_ in names]
 
     x_target = np.array(target_pos)
     x_first = np.array([pos_[0] for pos_ in pos])
@@ -191,19 +191,19 @@ def main():
         os.makedirs('save_model_selection')
 
     for (train_index, cv_index), i in zip(kf.split(x), range(kf.n_splits)):
-        names = ['gru:10-1_conv:False_fold:' + str(i), 'gru:10-2_conv:False_fold:' + str(i),
-                 'gru:100-1_conv:False_fold:' + str(i), 'gru:100-2_conv:False_fold:' + str(i)]
-        save_names = ['save_model_selection/' + name for name in names]
-        log_names = ['log_model_selection/' + name for name in names]
-        img_names = ['imgs/' + name + '/' for name in names]
+        widths_gru = [1000, 100]
+        depths_gru = [1, 2]
+        names = ['gru:{}-{}_conv:False_fold:{}'.format(width_, depth_, i)for
+                 width_, depth_ in zip(widths_gru, depths_gru)]
+        save_names = ['save_model_selection/' + name_ for name_ in names]
+        log_names = ['log_model_selection/' + name_ for name_ in names]
+        img_names = ['imgs/' + name_ for name_ in names]
 
         this_x, this_torque, this_pos, this_vel, this_aux, this_mask, this_aux_mask = \
             [a_[train_index] for a_ in [x, torque, pos, vel, aux, mask, aux_mask]]
         this_x_cv, this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv, this_mask_cv, this_aux_mask_cv = \
             [a_[cv_index] for a_ in [x, torque, pos, vel, aux, mask, aux_mask]]
 
-        widths_gru = [1000, 100]
-        depths_gru = [1, 2]
 
         for width_gru, depth_gru, save_name, log_name, img_name in \
                 zip(widths_gru, depths_gru, save_names, log_names, img_names):
