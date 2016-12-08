@@ -100,7 +100,7 @@ class MyModel(object):
         this_file = max(glob(self.save_path+'*'))
         self.model.load_weights(this_file)
         n = re.search(r'\D*(\d+)\.hdf5', this_file).group(1)
-        return n
+        return int(n)
 
     def resume(self, *args, **kwargs):
         init_epoch = self.load()
@@ -227,3 +227,4 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         pass
+
