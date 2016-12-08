@@ -2,6 +2,7 @@
 import argparse
 import os
 import re
+from glob import glob
 
 import h5py
 import numpy as np
@@ -11,6 +12,7 @@ from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing.data import StandardScaler
+import matplotlib.pyplot as plt
 
 
 class MyModel(object):
@@ -75,7 +77,7 @@ class MyModel(object):
                        sample_weight=self.train_mask, callbacks=self.callbacks, *args, **kwargs)
 
     def load(self):
-        this_file = max(os.listdir(self.save_path))
+        this_file = max(glob(self.save_path+'*'))
         self.model.load_weights(this_file)
         n = re.search(r'\D*(\d+)\.hdf5', this_file).group(1)
         return n
@@ -87,6 +89,9 @@ class MyModel(object):
 
 def parse():
     parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument('-t', '--train', help='Begin training', action='store_true')
+    parser.add_argument('-r', '--resume', help='Resume training', action='store_true')
+    parser.add_argument('-v', '--visualization', help='Display predictions', action='store_true')
     parser.add_argument('filename', help='Name of the file to load')
     parser.add_argument('-n', '--nrollout', help='Number of rollouts', type=int)
     parser.add_argument('-e', '--epoch', help='Number of epoch', type=int, default=1000)
@@ -136,6 +141,7 @@ def main():
                  'gru:100-1_conv:False_fold:' + str(i), 'gru:100-2_conv:False_fold:' + str(i)]
         save_names = ['save_model_selection/' + name for name in names]
         log_names = ['log_model_selection/' + name for name in names]
+        img_names = ['imgs/' + name + '/' for name in names]
 
         this_x, this_y, this_y_aux, this_y_mask, this_y_aux_mask =\
             [aux[train_index] for aux in [x, y, y_aux, y_mask, y_aux_mask]]
@@ -160,8 +166,37 @@ def main():
                               max_unroll=n_rollout, save_dir=save_names[3], log_dir=log_names[3],
                               width_gru=100, depth_gru=2, width_dense=50, depth_dense=2, optimizer='adam'))
 
-        for model in models:
-            model.fit(nb_epoch=n_epoch, batch_size=512)
+        for model, img_name in zip(models, img_names):
+            if args.train:
+                model.fit(nb_epoch=n_epoch, batch_size=512)
+            elif args.resume:
+                model.resume(nb_epoch=n_epoch, batch_size=512)
+            elif args.visualization:
+                model.load()
+                if not os.path.exists(img_name):
+                    os.makedirs(img_name)
+                plot_names = ['train', 'cv', 'test']
+                joint_names = ['s0', 's1', 'e0', 'e1', 'w0', 'w1', 'w2', 'mask']
+                f, axs = plt.subplots(8, 1, figsize=(15, 20))
+                for inp, outp, outp_aux, plot_name in zip((this_x, this_x_cv, x_test),
+                                                          (this_y, this_y_cv, y_test),
+                                                          (this_y_aux, this_y_aux_cv, y_aux_test),
+                                                          plot_names):
+                    out, out_aux = model.model.predict(inp, batch_size=512)
+                    for row, row_aux, row_out, row_aux_out, index in\
+                            zip(outp, outp_aux, out, out_aux, xrange(len(this_y))):
+                        if index%100 == 0:
+                            for ax, joint, joint_out, joint_name in\
+                                    zip(axs, np.append(row.T, row_aux.T, axis=0),
+                                        np.append(row_out.T, row_aux_out.T, axis=0), joint_names):
+                                ax.clear()
+                                ax.plot(joint)
+                                ax.plot(joint_out)
+                                ax.set_title(joint_name)
+
+                            f.savefig(img_name+plot_name+str(index)+'.pdf', dpi='400')
+                plt.close('all')
+
 
 if __name__ == '__main__':
     try:
