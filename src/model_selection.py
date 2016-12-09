@@ -56,9 +56,7 @@ class MyModel(object):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
-        x = Dropout(dropout_fraction)(x)
         x = TimeDistributed(Dense(64, init='normal', activation='relu'), name='hidden_pre_GRU')(x)
-        x = Dropout(dropout_fraction)(x)
         for i in range(gru_depth):
             x = GRU(gru_width, return_sequences=True, init='normal', activation='relu', dropout_U=dropout_fraction,
                     dropout_W=dropout_fraction)(x)
