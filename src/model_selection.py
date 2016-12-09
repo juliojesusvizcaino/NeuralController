@@ -53,7 +53,7 @@ class MyModel(object):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
-        x = TimeDistributed(Dense(64, init='normal'))(x)
+        x = TimeDistributed(Dense(64, init='normal'), name='hidden_pre_GRU')(x)
         for i in range(gru_depth):
             x = GRU(gru_width, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
             if conv:
@@ -157,7 +157,6 @@ def main():
     effort_scaler, effort = prepare_time_data(effort)
     pos_scaler, pos = prepare_time_data(pos)
     vel_scaler, vel = prepare_time_data(vel)
-
 
     torque = pad_sequences(effort, padding='post', value=0., dtype=np.float64)
     pos = pad_sequences(pos, padding='post', value=0., dtype=np.float64)
