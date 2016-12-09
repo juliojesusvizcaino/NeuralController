@@ -174,10 +174,11 @@ def main():
     pos_scaler, pos = prepare_time_data(pos)
     vel_scaler, vel = prepare_time_data(vel)
 
-    torque = pad_sequences(effort, padding='post', value=0.)
-    pos = pad_sequences(pos, padding='post', value=0.)
-    vel = pad_sequences(vel, padding='post', value=0.)
-    aux_output = pad_sequences(aux_output, padding='post', value=0.)
+
+    torque = pad_sequences(effort, padding='post', value=0., dtype=np.float64)
+    pos = pad_sequences(pos, padding='post', value=0., dtype=np.float64)
+    vel = pad_sequences(vel, padding='post', value=0., dtype=np.float64)
+    aux_output = pad_sequences(aux_output, padding='post', value=0., dtype=np.float64)
     mask = aux_output[:,:,0]
     aux_mask = np.ones(aux_output.shape[:2])
 
