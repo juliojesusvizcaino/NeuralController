@@ -48,7 +48,7 @@ class MyModel(object):
         mask = [this_data[:,:self.max_unroll] for this_data in data]
         return mask
 
-    def set_model(self, gru_width=100, gru_depth=2, dense_width=50, dense_depth=2, conv=False, conv_width=48,
+    def set_model(self, gru_width=100, gru_depth=2, dense_width=500, dense_depth=2, conv=False, conv_width=48,
                   conv_filter=3, *args, **kwargs):
         inputs = Input(shape=(15,))
 
@@ -60,31 +60,15 @@ class MyModel(object):
                 x = Convolution1D(conv_width, conv_filter, border_mode='same')(x)
                 x = Dropout(0.2)(x)
 
-        x_torque = x
         for i in range(dense_depth):
-            x_torque = TimeDistributed(Dense(dense_width, activation='relu', init='normal'),
-                                       name='hidden_torque_'+str(i))(x_torque)
-            x_torque = Dropout(0.2)(x_torque)
+            x = TimeDistributed(Dense(dense_width, activation='relu', init='normal'),
+                                       name='hidden_'+str(i))(x)
+            x = Dropout(0.2)(x)
 
-        x_mask = TimeDistributed(Dense(50, activation='relu', init='normal'), name='hidden_mask_1')(x)
-        x_mask = Dropout(0.2)(x_mask)
-        x_mask = TimeDistributed(Dense(50, activation='relu', init='normal'), name='hidden_mask_2')(x_mask)
-        x_mask = Dropout(0.2)(x_mask)
-
-        x_pos = TimeDistributed(Dense(50, activation='relu', init='normal'), name='hidden_pos_1')(x)
-        x_pos = Dropout(0.2)(x_pos)
-        x_pos = TimeDistributed(Dense(50, activation='relu', init='normal'), name='hidden_pos_2')(x_pos)
-        x_pos = Dropout(0.2)(x_pos)
-
-        x_vel = TimeDistributed(Dense(50, activation='relu', init='normal'), name='hidden_vel_1')(x)
-        x_vel = Dropout(0.2)(x_vel)
-        x_vel = TimeDistributed(Dense(50, activation='relu', init='normal'), name='hidden_vel_2')(x_vel)
-        x_vel = Dropout(0.2)(x_vel)
-
-        torque_output = TimeDistributed(Dense(7, init='normal'), name='output_torque')(x_torque)
-        pos_output = TimeDistributed(Dense(7, init='normal'), name='output_pos')(x_pos)
-        vel_output = TimeDistributed(Dense(7, init='normal'), name='output_vel')(x_vel)
-        mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='output_mask')(x_mask)
+        torque_output = TimeDistributed(Dense(7, init='normal'), name='output_torque')(x)
+        pos_output = TimeDistributed(Dense(7, init='normal'), name='output_pos')(x)
+        vel_output = TimeDistributed(Dense(7, init='normal'), name='output_vel')(x)
+        mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='output_mask')(x)
 
         model = Model(input=inputs, output=[torque_output, pos_output, vel_output, mask_output])
         model.compile(loss=['mae', 'mae', 'mae', 'binary_crossentropy'],
