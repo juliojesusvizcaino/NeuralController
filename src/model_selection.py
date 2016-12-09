@@ -51,7 +51,7 @@ class MyModel(object):
         return mask
 
     def set_model(self, gru_width=100, gru_depth=2, dense_width=500, dense_depth=2, conv=False, conv_width=48,
-                  conv_filter=3, dropout_fraction=0.2, *args, **kwargs):
+                  conv_filter=3, dropout_fraction=0.5, *args, **kwargs):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
@@ -60,7 +60,7 @@ class MyModel(object):
         x = Dropout(dropout_fraction)(x)
         for i in range(gru_depth):
             x = GRU(gru_width, return_sequences=True, init='normal', activation='relu', dropout_U=dropout_fraction,
-                    dropout_W=dropout_fraction, W_regularizer=l2(0.01), U_regularizer=l2(0.01))(x)
+                    dropout_W=dropout_fraction)(x)
             x = Dropout(dropout_fraction)(x)
             if conv:
                 x = Convolution1D(conv_width, conv_filter, border_mode='same')(x)
