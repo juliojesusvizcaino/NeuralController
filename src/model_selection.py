@@ -19,7 +19,7 @@ from sklearn.preprocessing.data import StandardScaler
 
 class MyModel(object):
     def __init__(self, train, val, test=None, train_mask=None, val_mask=None, test_mask=None, max_unroll=None,
-                 save_dir='save/', log_dir='logs/', img_dir='imgs/', *args, **kwargs):
+                 save_dir='save/', log_dir='logs/', img_dir='imgs/', torque_scaler=None, *args, **kwargs):
         self.max_unroll = max_unroll if max_unroll is not None else train[1][0].shape[1]
         self.x, self.y = self._set_data(train)
         self.x_val, self.y_val = self._set_data(val)
@@ -30,6 +30,7 @@ class MyModel(object):
         self.set_model(*args, **kwargs)
         self.save_path = save_dir if save_dir[-1] is '/' else save_dir + '/'
         self.img_path = img_dir if img_dir[-1] is '/' else img_dir + '/'
+        self.torque_scaler = torque_scaler
 
         if not os.path.exists(self.save_path):
             os.mkdir(self.save_path)
@@ -108,6 +109,8 @@ class MyModel(object):
                                                   (self.y[-1], self.y_val[-1], self.y_test[-1]),
                                                   plot_names):
             out, _, _, out_aux = self.model.predict(inp, batch_size=512)
+            outp = self.torque_scaler.inverse_transform(outp)
+            out = self.torque_scaler.inverse_transform(out)
             for row, row_aux, row_out, row_aux_out, index in \
                     zip(outp, outp_aux, out, out_aux, xrange(len(outp))):
                 if index % n == 0:
@@ -205,12 +208,13 @@ def main():
                             val_mask=[this_mask_cv] * 3 + [this_aux_mask_cv],
                             test=[x_test, [torque_test, aux_test]], test_mask=[mask_test, aux_mask_test],
                             max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
-                            width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2)
+                            width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2,
+                            torque_scaler=effort_scaler)
             if args.train:
                 model.fit(nb_epoch=n_epoch, batch_size=512)
             elif args.resume:
                 model.resume(nb_epoch=n_epoch, batch_size=512)
-            elif args.visualization:
+            if args.visualization:
                 model.load()
                 model.save_figs()
 
