@@ -10,6 +10,7 @@ import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, Convolution1D, GRU
 from keras.models import Model
+from keras.optimizers import Adam
 from keras.preprocessing.sequence import pad_sequences
 from keras.regularizers import l2
 from sklearn.model_selection import train_test_split, KFold
@@ -76,8 +77,9 @@ class MyModel(object):
         mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='output_mask')(x)
 
         model = Model(input=inputs, output=[torque_output, pos_output, vel_output, mask_output])
-        model.compile(loss=['mae', 'mae', 'mae', 'binary_crossentropy'],
-                      sample_weight_mode='temporal', loss_weights=[1., 0.1, 0.1, 1.], *args, **kwargs)
+        optimizer = Adam(decay=1e-6)
+        model.compile(loss=['mae', 'mae', 'mae', 'binary_crossentropy'], sample_weight_mode='temporal',
+                      loss_weights=[1., 0.1, 0.1, 1.], optimizer=optimizer, *args, **kwargs)
 
         self.model = model
 
@@ -201,7 +203,7 @@ def main():
                             val_mask=[this_mask_cv] * 3 + [this_aux_mask_cv],
                             test=[x_test, [torque_test, aux_test]], test_mask=[mask_test, aux_mask_test],
                             max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
-                            width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2, optimizer='adam')
+                            width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2)
             if args.train:
                 model.fit(nb_epoch=n_epoch, batch_size=512)
             elif args.resume:
