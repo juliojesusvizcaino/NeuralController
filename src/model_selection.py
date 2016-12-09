@@ -5,7 +5,7 @@ import re
 from glob import glob
 
 import h5py
-import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, Convolution1D, GRU
@@ -98,6 +98,8 @@ class MyModel(object):
         self.fit(initial_epoch=init_epoch, *args, **kwargs)
 
     def save_figs(self, n=100):
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
         plot_names = ['train', 'cv', 'test']
         joint_names = ['s0', 's1', 'e0', 'e1', 'w0', 'w1', 'w2', 'mask']
         f, axs = plt.subplots(8, 1, figsize=(15, 20))
