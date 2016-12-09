@@ -11,6 +11,7 @@ from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
 from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, Convolution1D, GRU
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
+from keras.regularizers import l2
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing.data import StandardScaler
 
@@ -41,29 +42,33 @@ class MyModel(object):
 
     def _set_data(self, data):
         x = data[0]
-        y = [this_data[:,:self.max_unroll,:] for this_data in data[1]]
+        y = [this_data[:, :self.max_unroll, :] for this_data in data[1]]
         return x, y
 
     def _set_mask(self, data):
-        mask = [this_data[:,:self.max_unroll] for this_data in data]
+        mask = [this_data[:, :self.max_unroll] for this_data in data]
         return mask
 
     def set_model(self, gru_width=100, gru_depth=2, dense_width=500, dense_depth=2, conv=False, conv_width=48,
-                  conv_filter=3, *args, **kwargs):
+                  conv_filter=3, dropout_fraction=0.5, *args, **kwargs):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
-        x = TimeDistributed(Dense(64, init='normal'), name='hidden_pre_GRU')(x)
+        x = Dropout(dropout_fraction)(x)
+        x = TimeDistributed(Dense(64, init='normal', activation='relu'), name='hidden_pre_GRU')(x)
+        x = Dropout(dropout_fraction)(x)
         for i in range(gru_depth):
-            x = GRU(gru_width, return_sequences=True, init='normal', dropout_U=0.2, dropout_W=0.2)(x)
+            x = GRU(gru_width, return_sequences=True, init='normal', activation='relu', dropout_U=dropout_fraction,
+                    dropout_W=dropout_fraction, W_regularizer=l2(0.01), U_regularizer=l2(0.01))(x)
+            x = Dropout(dropout_fraction)(x)
             if conv:
                 x = Convolution1D(conv_width, conv_filter, border_mode='same')(x)
-                x = Dropout(0.2)(x)
+                x = Dropout(dropout_fraction)(x)
 
         for i in range(dense_depth):
-            x = TimeDistributed(Dense(dense_width, activation='relu', init='normal'),
-                                       name='hidden_'+str(i))(x)
-            x = Dropout(0.2)(x)
+            x = TimeDistributed(Dense(dense_width, activation='relu', init='normal', W_regularizer=l2(0.01)),
+                                name='hidden_' + str(i))(x)
+            x = Dropout(dropout_fraction)(x)
 
         torque_output = TimeDistributed(Dense(7, init='normal'), name='output_torque')(x)
         pos_output = TimeDistributed(Dense(7, init='normal'), name='output_pos')(x)
@@ -81,7 +86,7 @@ class MyModel(object):
                        sample_weight=self.train_mask, callbacks=self.callbacks, *args, **kwargs)
 
     def load(self):
-        this_file = max(glob(self.save_path+'*'))
+        this_file = max(glob(self.save_path + '*'))
         self.model.load_weights(this_file)
         n = re.search(r'\D*(\d+)\.hdf5', this_file).group(1)
         return int(n)
@@ -96,9 +101,9 @@ class MyModel(object):
         f, axs = plt.subplots(8, 1, figsize=(15, 20))
         for inp, outp, outp_aux, plot_name in zip((self.x, self.x_val, self.x_test),
                                                   (self.y[0], self.y_val[0], self.y_test[0]),
-                                                  (self.y[1], self.y_val[1], self.y_test[1]),
+                                                  (self.y[-1], self.y_val[-1], self.y_test[-1]),
                                                   plot_names):
-            out, out_aux = self.model.predict(inp, batch_size=512)
+            out, _, _, out_aux = self.model.predict(inp, batch_size=512)
             for row, row_aux, row_out, row_aux_out, index in \
                     zip(outp, outp_aux, out, out_aux, xrange(len(outp))):
                 if index % n == 0:
@@ -110,7 +115,7 @@ class MyModel(object):
                         ax.plot(joint_out)
                         ax.set_title(joint_name)
 
-                    f.savefig(self.img_path+plot_name+str(index)+'.pdf', dpi='400')
+                    f.savefig(self.img_path + plot_name + str(index) + '.pdf', dpi='400')
         plt.close('all')
 
 
@@ -162,11 +167,11 @@ def main():
     pos = pad_sequences(pos, padding='post', value=0., dtype=np.float64)
     vel = pad_sequences(vel, padding='post', value=0., dtype=np.float64)
     aux_output = pad_sequences(aux_output, padding='post', value=0., dtype=np.float64)
-    mask = aux_output[:,:,0]
+    mask = aux_output[:, :, 0]
     aux_mask = np.ones(aux_output.shape[:2])
 
     x, x_test, torque, torque_test, pos, pos_test, vel, vel_test, \
-        aux, aux_test, mask, mask_test, aux_mask, aux_mask_test = \
+    aux, aux_test, mask, mask_test, aux_mask, aux_mask_test = \
         train_test_split(x, torque, pos, vel, aux_output, mask, aux_mask, test_size=0.3, random_state=seed)
 
     kf = KFold(n_splits=3, shuffle=True, random_state=seed)
@@ -177,7 +182,7 @@ def main():
     for (train_index, cv_index), i in zip(kf.split(x), range(kf.n_splits)):
         widths_gru = [1000, 100]
         depths_gru = [1, 2]
-        names = ['gru:{}-{}_conv:False_fold:{}'.format(width_, depth_, i)for
+        names = ['gru:{}-{}_conv:False_fold:{}'.format(width_, depth_, i) for
                  width_, depth_ in zip(widths_gru, depths_gru)]
         save_names = ['save_model_selection/' + name_ for name_ in names]
         log_names = ['log_model_selection/' + name_ for name_ in names]
@@ -188,12 +193,12 @@ def main():
         this_x_cv, this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv, this_mask_cv, this_aux_mask_cv = \
             [a_[cv_index] for a_ in [x, torque, pos, vel, aux, mask, aux_mask]]
 
-
         for width_gru, depth_gru, save_name, log_name, img_name in \
                 zip(widths_gru, depths_gru, save_names, log_names, img_names):
             model = MyModel(train=[this_x, [this_torque, this_pos, this_vel, this_aux]],
                             val=[this_x_cv, [this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv]],
-                            train_mask=[this_mask]*3+[this_aux_mask], val_mask=[this_mask_cv]*3+[this_aux_mask_cv],
+                            train_mask=[this_mask] * 3 + [this_aux_mask],
+                            val_mask=[this_mask_cv] * 3 + [this_aux_mask_cv],
                             test=[x_test, [torque_test, aux_test]], test_mask=[mask_test, aux_mask_test],
                             max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
                             width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2, optimizer='adam')
@@ -211,4 +216,3 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         pass
-
