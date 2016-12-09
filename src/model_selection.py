@@ -51,7 +51,7 @@ class MyModel(object):
         return mask
 
     def set_model(self, gru_width=100, gru_depth=2, dense_width=500, dense_depth=2, conv=False, conv_width=48,
-                  conv_filter=3, dropout_fraction=0.5, *args, **kwargs):
+                  conv_filter=3, dropout_fraction=0.2, *args, **kwargs):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
