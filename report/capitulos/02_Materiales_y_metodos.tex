@@ -1,14 +1,48 @@
 \chapter{Materiales y métodos}
-\section{ROS}
+\newcommand{\ros}{\texttt{ROS}}
+\section{\ros}
+\ros (Robot Operative System) es un sistema operativo de código abierto basado en paso de mensajes diseñado para plataformas robóticas. Sus usos van desde el diseño de drivers, a resolver problemas complejos como la navegación autónoma.
+
+La filosofía del sistema operativo es permitir a los desarrolladores abarcar de manera independiente los problemas que surgen al desarrollar una plataforma robótica, de modo que cada módulo pueda comunicarse con el resto, y que no haya que rediseñar un programa cuando se quiere cambiar de plataforma (y que una misma plataforma se beneficie de la implementación de distintos programas).
+
+La versión usada para trabajar con el robot Baxter ha sido \texttt{Indigo}, ya que es la versión soportada por el robot.
 \subsection{Arquitectura}
+La arquitectura de \ros sigue un modelo distribuido, donde cada nodo realiza una tarea y los nodos pueden comunicarse entre sí. Esta comunicación lo hace mediante paso de mensajes.
+\subsubsection{Nodos}
+Los nodos son los programas que realizan las tareas, ejecutables que utilizan \ros para para comunicarse con otros nodos. Para programarlos se usan las librerías roscpp (para c++) o rospy (para Python). En el presente trabajo se utiliza la implementación en Python (por motivos de compatibilidad con la API de Baxter, así como con las librerías tensorflow y keras explicadas más adelante).
+
+\subsubsection{Temas}
+Los temas son los canales de comunicación que utilizan los nodos para comunicarse con otros nodos. Son los ``puertos'' que cada tema pone hace público para permitir la comunicación con otros nodos.
+
+Los nodos publican y se suscriben a los temas.
+
+\subsubsection{Mensajes}
+La comunicación entre nodos se hace con el paso de mensajes. Estos son estructuras de datos que permiten a los nodos especificar y conocer la información que envían y reciben.
+
+\subsubsection{Servicios}
+Se trata de otra manera de comunicación, en la que un nodo hace una petición a otro y éste puede responder. Se diferencia de los mensajes en que el suscriptor puede responder al mensaje recibido, y su uso está enfocado a tareas aperiódicas.
+
+\subsubsection{Parámetros}
+Los parámetros son piezas de información contenidas en cada nodo que pueden ser vistas y modificadas por los nodos.
+
+\subsubsection{Ejemplo}
+Como ejemplo, se puede pensar en una cámara de vídeo que retransmite el vídeo en tiempo real. Esta cámara es un nodo (\texttt{/camera}) que publica mensajes del tipo imagen (que consiste en una matriz de nxm píxeles) al tema \texttt{/camera/image}.
+
+Por otro lado, en un servidor estamos ejecutando un programa de detección de imágenes haciendo uso de \ros para la comunicación (nodo \texttt{/camera/server}). Este programa se suscribe al tema \texttt{/image} para recibir las imágenes que va a analizar.
+
+Adicionalmente, la cámara tiene habilitado un servicio para reiniciar la cámara (\texttt{/camera/reset}) así como un conjunto de parámetros para filtrar las imágenes antes de publicarlas (\texttt{/color\_mode}), que permite cambiar la imagen a blanco y negro, sepia...
+
 \subsection{\texttt{rosbag}}
 \label{subsec:metodos/rosbag}
-\verb|rosbag| es una herramienta para grabar el paso de mensajes realizados sobre los temas que se le ofrecen como parámetros. Tiene la capacidad de grabar información adicional a los mensajes, como la marca temporal (momento en el que el mensaje es registrado) y de secuencia (número de mensaje en una secuencia) que cada mensaje tiene asociada. Esto es útil para sincronizar mensajes generados por otro sistema y recibidos por tcp/ip con los mensajes generados en el propio ordenador.
+\texttt{rosbag} es una herramienta para grabar el paso de mensajes realizados sobre los temas que se le ofrecen como parámetros. Tiene la capacidad de grabar información adicional a los mensajes, como la marca temporal (momento en el que el mensaje es registrado) y de secuencia (número de mensaje en una secuencia) que cada mensaje tiene asociada. Esto es útil para sincronizar mensajes generados por otro sistema y recibidos por tcp/ip con los mensajes generados en el propio ordenador.
+
+
 \section{Baxter}
+% Describir temas fundamentales
 \subsection{Disposición}
 % en el laboratorio, cómo se ha trabajado con él
 \subsection{Hardware}
-% Explicar hardware y software de baxter (procesador, JCBs, ros, interfaz de comunicación (baxter.sh))
+% Explicar hardware y software de Baxter (procesador, JCBs, ros, interfaz de comunicación (baxter.sh))
 El robot cuenta con:
 
 \begin{itemize}
@@ -18,7 +52,6 @@ El robot cuenta con:
 \item [Pinzas] Que se colocan al final de cada articulación. También se puede colocar una bomba de vacío. No interfieren con las cámaras.
 \item [Sonar] Ubicado en la cabeza.
 \item [Botones] Para interactuar con el robot, ubicados en los brazos, así como en el torso, a cada lado del robot.
-\item []
 \end{itemize}
 
 Las articulaciones son:
@@ -51,7 +84,7 @@ Cada brazo se puede controlar de manera independiente, pudiendo usar cada uno de
 \item Control por posición sin procesar (raw mode)
 \end{enumerate}
 
-Haciendo uso de la arquitectura de paso de mensajes que nos ofrece ROS, somos capaces de enviar en un tema (topic) tanto el modo de control que queremos usar como las características objetivos que queremos en el movimiento. El robot Baxter estará escuchando cada uno de los mensajes que le enviemos a los temas \verb|/robot/limb/left/joint_command| para el brazo izquierdo y \verb|/robot/limb/right/joint_command| para el brazo derecho. El tipo de mensaje que se envía es \verb|JointCommand|, que tiene como argumentos:
+Haciendo uso de la arquitectura de paso de mensajes que nos ofrece \ros, somos capaces de enviar en un tema (topic) tanto el modo de control que queremos usar como las características objetivos que queremos en el movimiento. El robot Baxter estará escuchando cada uno de los mensajes que le enviemos a los temas \texttt{/robot/limb/left/joint\_command} para el brazo izquierdo y \texttt{/robot/limb/right/joint\_command} para el brazo derecho. El tipo de mensaje que se envía es \texttt{JointCommand}, que tiene como argumentos:
 
 \begin{itemize}
 \item mode (POSITION\_MODE=1, VELOCITY\_MODE=2, TORQUE\_MODE=3, RAW\_POSITION\_MODE=4)
@@ -61,7 +94,7 @@ Haciendo uso de la arquitectura de paso de mensajes que nos ofrece ROS, somos ca
 
 El modo de control para cada brazo es único, mientras que la posición/velocidad/torque deseado es único para cada articulación en cada brazo.
 
-Aparte de enviar este tipo de mensajes, podemos definir la velocidad relativa máxima que alcanzará cada articulación en el modo de control por posición publicando al tema \verb|/robot/limb/<right/left>/set_speed_ratio| un valor entre 0 y 1.
+Aparte de enviar este tipo de mensajes, podemos definir la velocidad relativa máxima que alcanzará cada articulación en el modo de control por posición publicando al tema \texttt{/robot/limb/<right/left>/set\_speed\_ratio} un valor entre 0 y 1.
 
 El robot Baxter cuenta con una serie de limitaciones en cuanto a posiciones, velocidades y torques se refiere para cada articulación. Estas limitaciones se muestran en el cuadro \ref{tab:desarrollo/limits}.
 
@@ -82,7 +115,7 @@ Art.                    & (rad) Mín & (rad) Máx & (rad) Rango & (rad/s) Vel m�
 \end{table}
 % Ratio de velocidad
 
-\subsection{API de ROS}\label{sec:api-de-ros}
+\subsection{API de \ros}\label{sec:api-de-ros}
 Los temas que registraremos serán:
 
 \begin{itemize}
@@ -92,13 +125,13 @@ Los temas que registraremos serán:
 \end{itemize}
 subsubsec:metodos/pythonAPI\subsection{API de Python}
 \label{subsubsec:metodos/pythonAPI}
-La API tiene como objetivo disponer una interfaz basada en el lenguaje de programación Python para controlar y monitorizar el robot Baxter, ejecutando en su base las correspondientes instrucciones ROS. Para ello, cuenta con una serie de módulos orientados a los distintos componentes del robot (brazos, pinzas, cámara...).
+La API tiene como objetivo disponer una interfaz basada en el lenguaje de programación Python para controlar y monitorizar el robot Baxter, ejecutando en su base las correspondientes instrucciones \ros. Para ello, cuenta con una serie de módulos orientados a los distintos componentes del robot (brazos, pinzas, cámara...).
 
-Se hará uso del módulo \verb|brazo| para realizar el movimiento del mismo. Por motivos de disposición del robot en el laboratorio, se extraerá la base de datos haciendo uso del brazo izquierdo.
+Se hará uso del módulo \texttt{brazo} para realizar el movimiento del mismo. Por motivos de disposición del robot en el laboratorio, se extraerá la base de datos haciendo uso del brazo izquierdo.
 
-Dentro de este módulo, se hará uso de las funciones \verb|set_joint_position_speed(speed)| y \verb|move_to_joint_positions(positions)|. La primera controlará la velocidad máxima relativa para cada articulación, mientras que la segunda moverá el brazo a la posición deseada. Esta función cuenta además con un intervalo de tiempo máximo para realizar el movimiento. Que el tiempo máximo se agote será indicador de que el robot no puede alcanzar la posición deseada (está colisionando consigo mismo).
+Dentro de este módulo, se hará uso de las funciones \texttt{set\_joint\_position\_speed(speed)} y \texttt{move\_to\_joint\_positions(positions)}. La primera controlará la velocidad máxima relativa para cada articulación, mientras que la segunda moverá el brazo a la posición deseada. Esta función cuenta además con un intervalo de tiempo máximo para realizar el movimiento. Que el tiempo máximo se agote será indicador de que el robot no puede alcanzar la posición deseada (está colisionando consigo mismo).
 
-Un dato a tener en cuenta es que la función \verb|move_to_joint_positions(positions)| realiza un filtro paso baja de la diferencia de posiciones (actual y deseada) en el tiempo, ofreciendo un movimiento más fluido.
+Un dato a tener en cuenta es que la función \texttt{move\_to\_joint\_positions(positions)} realiza un filtro paso baja de la diferencia de posiciones (actual y deseada) en el tiempo, ofreciendo un movimiento más fluido.
 \subsection{Mecanismos de control}
 \label{subsec:metodos/control_baxter}
 \subsubsection{Control por posición}
@@ -207,7 +240,7 @@ El control por torque consiste en el modo de más bajo nivel que se puede contro
 \item [Escalado de torque] Si un torque excede el torque máximo para esa articulación, escala los torques de todas las articulaciones por el factor de exceso de esa articulación (torque\_max/torque).
 \end{enumerate}
 
-La compensación de la gravedad se puede desactivar mandando un mensaje vacío al tema \texttt{/robot/limb/right/suppress\_gravity\_compensation} para el brazo derecho, o \verb|/robot/limb/left/suppress_gravity_compensation| para el brazo izquierdo.
+La compensación de la gravedad se puede desactivar mandando un mensaje vacío al tema \texttt{/robot/limb/right/suppress\_gravity\_compensation} para el brazo derecho, o \texttt{/robot/limb/left/suppress\_gravity\_compensation} para el brazo izquierdo.
 
 De esta manera, un torque aplicado de 0 en todas las articulaciones, mantendrá el brazo en un estado de gravedad 0 si la compensación esta activa. De no estarlo, el brazo caerá en peso muerto.
 
