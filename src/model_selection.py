@@ -140,7 +140,7 @@ def main():
     n_rollout = args.nrollout
     n_epoch = args.epoch
 
-    seed = 1098
+    seed = 124
     np.random.seed(seed)
     path = args.filename
     names = ['target_pos', 'target_speed', 'pos', 'vel', 'effort']
