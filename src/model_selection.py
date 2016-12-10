@@ -38,8 +38,9 @@ class MyModel(object):
 
         save = ModelCheckpoint(self.save_path + '-checkpoint.{epoch:06d}.hdf5')
         tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=10)
-        earlyStopping = EarlyStopping(monitor='val_output_torque_loss', patience=500, min_delta=1e-4)
-        self.callbacks = [save, tensorboard, earlyStopping]
+        early_stopping_torque = EarlyStopping(monitor='val_output_torque_loss', patience=500, min_delta=1e-4)
+        early_stopping_val = EarlyStopping(monitor='val_loss', patience=500)
+        self.callbacks = [save, tensorboard, early_stopping_torque, early_stopping_val]
 
     def _set_data(self, data):
         x = data[0]
