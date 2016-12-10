@@ -186,7 +186,7 @@ def main():
     for (train_index, cv_index), i in zip(kf.split(x), range(kf.n_splits)):
         widths_gru = [1000, 100] * 4
         depths_gru = [1, 2] * 4
-        dropout_fractions = [0.2, 0.2, 0.3, 0.3] * 2
+        dropout_fractions = [0.2, 0.2, 0.5, 0.5] * 2
         convolution_layer = [False] * 4 + [True] * 4
         names = ['gru:{}-{}_conv:{}_dropout:{}_fold:{}'.format(width_, depth_, conv_, drop_, i) for
                  width_, depth_, conv_, drop_ in zip(widths_gru, depths_gru, convolution_layer, dropout_fractions)]
