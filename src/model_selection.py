@@ -5,6 +5,7 @@ import re
 from glob import glob
 
 import h5py
+import keras.backend as K
 import matplotlib
 import numpy as np
 from keras.callbacks import ModelCheckpoint, TensorBoard, EarlyStopping
@@ -79,7 +80,8 @@ class MyModel(object):
         model = Model(input=inputs, output=[torque_output, pos_output, vel_output, mask_output])
         optimizer = Adam(decay=1e-6)
         model.compile(loss=['mae', 'mae', 'mae', 'binary_crossentropy'], sample_weight_mode='temporal',
-                      loss_weights=[1., 0.1, 0.1, 1.], optimizer=optimizer, *args, **kwargs)
+                      loss_weights=[1., 0.1, 0.1, 1.], optimizer=optimizer,
+                      metrics={'torque_output': self.real_error()}, **kwargs)
 
         self.model = model
 
@@ -123,6 +125,12 @@ class MyModel(object):
 
                     f.savefig(self.img_path + plot_name + str(index) + '.pdf', dpi='400')
         plt.close('all')
+
+    def real_error(self):
+        def torque_error(y_true, y_pred, weights=self.torque_scaler.scale_):
+            return K.mean(K.abs(y_true, y_pred) / weights)
+
+        return torque_error
 
 
 def parse():
