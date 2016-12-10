@@ -12,7 +12,6 @@ from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, C
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.preprocessing.sequence import pad_sequences
-from keras.regularizers import l2
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing.data import StandardScaler
 
@@ -67,8 +66,7 @@ class MyModel(object):
                 x = Dropout(dropout_fraction)(x)
 
         for i in range(dense_depth):
-            x = TimeDistributed(Dense(dense_width, activation='relu', init='normal', W_regularizer=l2(0.01)),
-                                name='hidden_' + str(i))(x)
+            x = TimeDistributed(Dense(dense_width, activation='relu', init='normal'), name='hidden_' + str(i))(x)
             x = Dropout(dropout_fraction)(x)
 
         torque_output = TimeDistributed(Dense(7, init='normal'), name='output_torque')(x)
