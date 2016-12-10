@@ -200,8 +200,8 @@ def main():
         this_x_cv, this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv, this_mask_cv, this_aux_mask_cv = \
             [a_[cv_index] for a_ in [x, torque, pos, vel, aux, mask, aux_mask]]
 
-        for width_gru, depth_gru, save_name, log_name, img_name in \
-                zip(widths_gru, depths_gru, save_names, log_names, img_names):
+        for width_gru, depth_gru, dropout_fraction, conv, save_name, log_name, img_name in \
+                zip(widths_gru, depths_gru, dropout_fractions, convolution_layer, save_names, log_names, img_names):
             model = MyModel(train=[this_x, [this_torque, this_pos, this_vel, this_aux]],
                             val=[this_x_cv, [this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv]],
                             train_mask=[this_mask] * 3 + [this_aux_mask],
@@ -209,7 +209,7 @@ def main():
                             test=[x_test, [torque_test, aux_test]], test_mask=[mask_test, aux_mask_test],
                             max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
                             width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2,
-                            torque_scaler=effort_scaler)
+                            torque_scaler=effort_scaler, conv=conv, dropout_fraction=dropout_fraction)
             if args.train:
                 model.fit(nb_epoch=n_epoch, batch_size=512)
             elif args.resume:
