@@ -39,7 +39,7 @@ class MyModel(object):
 
         save = ModelCheckpoint(self.save_path + '-checkpoint.{epoch:06d}.hdf5')
         tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=10)
-        earlyStopping = EarlyStopping(patience=5000)
+        earlyStopping = EarlyStopping(monitor='val_output_torque_loss', patience=500, min_delta=1e-4)
         self.callbacks = [save, tensorboard, earlyStopping]
 
     def _set_data(self, data):
@@ -57,6 +57,7 @@ class MyModel(object):
 
         x = RepeatVector(self.max_unroll)(inputs)
         x = TimeDistributed(Dense(64, init='normal', activation='relu'), name='hidden_pre_GRU')(x)
+        x = Dropout(dropout_fraction)(x)
         for i in range(gru_depth):
             x = GRU(gru_width, return_sequences=True, init='normal', activation='relu', dropout_U=dropout_fraction,
                     dropout_W=dropout_fraction)(x)
@@ -185,10 +186,12 @@ def main():
         os.makedirs('save_model_selection')
 
     for (train_index, cv_index), i in zip(kf.split(x), range(kf.n_splits)):
-        widths_gru = [1000, 100]
-        depths_gru = [1, 2]
-        names = ['gru:{}-{}_conv:False_fold:{}'.format(width_, depth_, i) for
-                 width_, depth_ in zip(widths_gru, depths_gru)]
+        widths_gru = [1000, 100] * 4
+        depths_gru = [1, 2] * 4
+        dropout_fractions = [0.2, 0.2, 0.3, 0.3] * 2
+        convolution_layer = [False] * 4 + [True] * 4
+        names = ['gru:{}-{}_conv:{}_dropout:{}_fold:{}'.format(width_, depth_, conv_, drop_, i) for
+                 width_, depth_, conv_, drop_ in zip(widths_gru, depths_gru, convolution_layer, dropout_fractions)]
         save_names = ['save_model_selection/' + name_ for name_ in names]
         log_names = ['log_model_selection/' + name_ for name_ in names]
         img_names = ['imgs/' + name_ for name_ in names]
