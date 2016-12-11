@@ -12,6 +12,7 @@ from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, C
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.preprocessing.sequence import pad_sequences
+from keras.regularizers import l2
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing.data import StandardScaler
 
@@ -52,7 +53,7 @@ class MyModel(object):
         return mask
 
     def set_model(self, gru_width=100, gru_depth=2, dense_width=500, dense_depth=2, conv=False, conv_width=100,
-                  conv_filter=3, dropout_fraction=0.5, **kwargs):
+                  conv_filter=3, dropout_fraction=0.5, l2_weight=0.0, **kwargs):
         inputs = Input(shape=(15,))
 
         x = RepeatVector(self.max_unroll)(inputs)
@@ -60,7 +61,7 @@ class MyModel(object):
         x = Dropout(dropout_fraction)(x)
         for i in range(gru_depth):
             x = GRU(gru_width, return_sequences=True, init='normal', activation='relu', dropout_U=dropout_fraction,
-                    dropout_W=dropout_fraction)(x)
+                    dropout_W=dropout_fraction, W_regularizer=l2(l2_weight), U_regularizer=l2(l2_weight))(x)
             x = Dropout(dropout_fraction)(x)
             if conv:
                 x = Convolution1D(conv_width, conv_filter, border_mode='same')(x)
@@ -185,12 +186,14 @@ def main():
         os.makedirs('save_model_selection')
 
     for (train_index, cv_index), i in zip(kf.split(x), range(kf.n_splits)):
-        widths_gru = [1000, 100] * 4
-        depths_gru = [1, 2] * 4
-        dropout_fractions = [0.2, 0.2, 0.5, 0.5] * 2
-        convolution_layer = [False] * 4 + [True] * 4
-        names = ['gru:{}-{}_conv:{}_dropout:{}_fold:{}'.format(width_, depth_, conv_, drop_, i) for
-                 width_, depth_, conv_, drop_ in zip(widths_gru, depths_gru, convolution_layer, dropout_fractions)]
+        widths_gru = [1000] * 4
+        depths_gru = [1] * 4
+        dropout_fractions = [0.5, 0.5, 0.8, 0.83] * 2
+        convolution_layer = [False] * 4
+        l2_weights = [1e-6, 1e-3] * 2
+        names = ['gru:{}-{}_conv:{}_dropout:{}_l2:{}_fold:{}'.format(width_, depth_, conv_, drop_, l2_, i) for
+                 width_, depth_, conv_, drop_, l2_ in
+                 zip(widths_gru, depths_gru, convolution_layer, dropout_fractions, l2_weights)]
         save_names = ['save_model_selection/' + name_ for name_ in names]
         log_names = ['log_model_selection/' + name_ for name_ in names]
         img_names = ['imgs/' + name_ for name_ in names]
@@ -200,8 +203,9 @@ def main():
         this_x_cv, this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv, this_mask_cv, this_aux_mask_cv = \
             [a_[cv_index] for a_ in [x, torque, pos, vel, aux, mask, aux_mask]]
 
-        for width_gru, depth_gru, dropout_fraction, conv, save_name, log_name, img_name in \
-                zip(widths_gru, depths_gru, dropout_fractions, convolution_layer, save_names, log_names, img_names):
+        for width_gru, depth_gru, dropout_fraction, conv, l2_weight, save_name, log_name, img_name in \
+                zip(widths_gru, depths_gru, dropout_fractions, convolution_layer, l2_weights,
+                    save_names, log_names, img_names):
             model = MyModel(train=[this_x, [this_torque, this_pos, this_vel, this_aux]],
                             val=[this_x_cv, [this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv]],
                             train_mask=[this_mask] * 3 + [this_aux_mask],
@@ -209,7 +213,8 @@ def main():
                             test=[x_test, [torque_test, aux_test]], test_mask=[mask_test, aux_mask_test],
                             max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
                             width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2,
-                            torque_scaler=effort_scaler, conv=conv, dropout_fraction=dropout_fraction)
+                            torque_scaler=effort_scaler, conv=conv, dropout_fraction=dropout_fraction,
+                            l2_weight=l2_weight)
             if args.train:
                 model.fit(nb_epoch=n_epoch, batch_size=512)
             elif args.resume:
