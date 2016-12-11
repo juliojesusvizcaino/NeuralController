@@ -1,15 +1,15 @@
 \chapter{Materiales y métodos}
-\newcommand{\ros}{\texttt{ROS}}
+\newcommand{\ros}{\texttt{ROS} }
 \section{\ros}
 \ros (Robot Operative System) \cite{ros} es un sistema operativo de código abierto basado en paso de mensajes diseñado para plataformas robóticas. Sus usos van desde el diseño de drivers, a resolver problemas complejos como la navegación autónoma.
 
 La filosofía del sistema operativo es permitir a los desarrolladores abarcar de manera independiente los problemas que surgen al desarrollar una plataforma robótica, de modo que cada módulo pueda comunicarse con el resto, y que no haya que rediseñar un programa cuando se quiere cambiar de plataforma (y que una misma plataforma se beneficie de la implementación de distintos programas).
 
-La versión usada para trabajar con el robot Baxter ha sido \texttt{Indigo}, ya que es la versión soportada por el robot.
+La versión usada para trabajar con el robot Baxter \cite{baxter} ha sido \texttt{Indigo}, ya que es la versión soportada por el robot.
 \subsection{Arquitectura}
 La arquitectura de \ros sigue un modelo distribuido, donde cada nodo realiza una tarea y los nodos pueden comunicarse entre sí. Esta comunicación lo hace mediante paso de mensajes.
 \subsubsection{Nodos}
-Los nodos son los programas que realizan las tareas, ejecutables que utilizan \ros para para comunicarse con otros nodos. Para programarlos se usan las librerías roscpp (para c++) o rospy (para Python). En el presente trabajo se utiliza la implementación en Python (por motivos de compatibilidad con la API de Baxter, así como con las librerías tensorflow y keras explicadas más adelante).
+Los nodos son los programas que realizan las tareas, ejecutables que utilizan \ros para comunicarse con otros nodos. Para programarlos se usan las librerías \textit{roscpp} (para c++) o \textit{rospy} (para Python). En el presente trabajo se utiliza la implementación en Python (por motivos de compatibilidad con la interfaz de programación de aplicaciones (API) de Baxter, así como con las librerías \textit{tensorflow} \cite{tensorflow} y \textit{keras} \cite{keras} explicadas más adelante).
 
 \subsubsection{Temas}
 Los temas son los canales de comunicación que utilizan los nodos para comunicarse con otros nodos. Son los ``puertos'' que cada tema pone hace público para permitir la comunicación con otros nodos.
@@ -120,7 +120,7 @@ El modo de control para cada brazo es único, mientras que la posición/velocida
 
 Aparte de enviar este tipo de mensajes, podemos definir la velocidad relativa máxima que alcanzará cada articulación en el modo de control por posición publicando al tema \texttt{/robot/limb/<right/left>/set\_speed\_ratio} un valor entre 0 y 1.
 
-El robot Baxter cuenta con una serie de limitaciones en cuanto a posiciones, velocidades y torques se refiere para cada articulación. Estas limitaciones se muestran en el cuadro \ref{tab:desarrollo/limits}.
+El robot Baxter cuenta con una serie de limitaciones, en cuanto a posiciones, velocidades y torques se refiere, para cada articulación. Estas limitaciones se muestran en el cuadro \ref{tab:desarrollo/limits}.
 
 \begin{table}[]
 \centering
@@ -142,7 +142,7 @@ Art.                    & (rad) Mín & (rad) Máx & (rad) Rango & (rad/s) Vel m�
 \subsection{API de \ros}\label{sec:api-de-ros}
 Baxter hace uso de \ros para comunicarse internamente, así como para recibir y enviar información con el exterior.
 
-La interfaz de programación de aplicaciones (API) de Baxter con respecto a \ros pone a disposición del programador de los tipos de mensajes y servicios usados por el mismo, así como de los temas publicados para su control.
+La interfaz de programación de aplicaciones (API) de Baxter con respecto a \ros pone a disposición del programador los tipos de mensajes y servicios usados por el mismo, así como de los temas publicados para su control.
 
 En este trabajo se hace uso de los siguientes temas:
 
@@ -193,6 +193,7 @@ La orden donde todas las articulaciones se ponen en la posición 0 corresponde c
 	\caption{Límites articulaciones}
 	\label{fig:metodos/limits}
 \end{figure}
+% Cambiar orden a pos, vel, torque, pos_raw
 
 Dada la naturaleza del robot Baxter, en este modo de operación se aplican unos filtros antes de aplicar la orden de posición, a fin de evitar accidentes y otorgar una experiencia de movimiento más fluida y segura. Los filtros son los que se muestran en la figura \ref{fig:metodos/position_filters}.
 
@@ -285,44 +286,218 @@ De esta manera, un torque aplicado de 0 en todas las articulaciones, mantendrá 
 
 \subsection{Simuladores}
 \subsubsection{V-REP}
-V-REP es un simulador robótico muy potente, con una gran cantidad de modelos predefinidos listos para simular, y una gran cantidad de opciones para configurar.
+Virtual Robot Experimentation Platform (V-REP) \cite{vrep} es un simulador robótico muy potente, con una gran cantidad de modelos predefinidos listos para simular, y una gran cantidad de opciones para configurar.
 
 \subsubsection{Gazebo}
-Al igual que V-REP, es un simulador de plataformas robóticas. Es menos potente, y tiene menos modelos predefinidos, pero está integrado con \ros, y el robot Baxter cuenta con un modelo listo para simular para el mismo, por lo que es la opción elegida para realizar las pruebas.
+Al igual que V-REP, Gazebo \cite{gazebo} es un simulador de plataformas robóticas. Es menos potente, y tiene menos modelos predefinidos, pero está integrado con \ros, y el robot Baxter cuenta con un modelo listo para simular para el mismo, por lo que es la opción elegida para realizar las pruebas.
 
 \paragraph{Problemas}
 La versión del simulador en la que está implementada es la 2.2, mientras que la que se puede descargar ahora es la 7.1. Esto hace que no sea lo potente que debiera, y a la hora de realizar simulaciones utilizando el control por torques, el simulador no responde igual que el robot, por lo que su uso quedó limitado a las primeras pruebas que se hicieron en una primera aproximación al control por posición del robot.
 
 \section{Redes Neuronales}
-Una red neuronal artificial es un conjunto de algoritmos de aprendizaje automático capaces de extraer modelos a partir de un conjunto de datos de aprendizaje. De esta manera, estos sistemas son capaces de emular la fuente generadora de datos y producir salidas coherentes a partir de entradas no vistas con anterioridad.
+Una red neuronal artificial \cite{abu2012learning} \cite{hinton} \cite{andrewng} es un conjunto de algoritmos de aprendizaje automático capaces de extraer modelos a partir de un conjunto de datos de aprendizaje. De esta manera, estos sistemas son capaces de emular la fuente generadora de datos y producir salidas coherentes a partir de entradas no vistas con anterioridad.
 \subsection{Topología}
 En función de la topología de la red, se contemplan dos tipos fundamentales:
 \subsubsection{Redes hacia adelante}
-Las conexiones entre las neuronas es de un solo sentido, de modo que no se forman bucles entre ninguna de las neuronas (figura \ref{fig:metodos/feedforward}).
+Las conexiones entre las neuronas es de un solo sentido, de modo que no se forman bucles entre ninguna de las neuronas (figura \ref{fig:metodos/feedforward}). Las líneas que conectan las ``neuronas'' son pesos, y la interconexión entre una capa y otra se puede representar como una matriz de mxn, donde m es el número de neuronas de la capa anterior, y n es el numero de neuronas de la capa siguiente. De este modo, la entrada de cada capa no es sino la combinación lineal de las salidas de las capas anteriores.
+
+Si las relaciones entre las capas sólo fueran combinaciones lineales, la red neuronal se podría reducir a una única matriz que interconectara la capa de entrada con la de salida. Lo que sucede es que cada neurona tiene una activación, que consistirá en una relación no lineal entre la entrada que percibe y la salida. Son estas no linealidades las que le confieren la capacidad de aprender parámetros nuevos, por lo que podrán ajustarse al espacio de búsqueda.
 
 \begin{figure}
 	\centering
-	\begin{neuralnetwork}[height=4.7]
-		\newcommand{\nodetextclear}[2]{}
-		\newcommand{\nodetextx}[2]{$x_#2$}
-		\newcommand{\nodetexty}[2]{$y_#2$}
-		\inputlayer[count=4, bias=false, title=Capa de\\entrada, text=\nodetextx]
-		\hiddenlayer[count=5, bias=false, title=Capa\\oculta, text=\nodetextclear] \linklayers
-		\outputlayer[count=3, title=Capa de\\salida, text=\nodetexty] \linklayers
-	\end{neuralnetwork}
-	\caption{Red neuronal de propagación hacia adelante}
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\begin{neuralnetwork}[height=4.7]
+			\newcommand{\nodetextclear}[2]{}
+			\newcommand{\nodetextx}[2]{$x_#2$}
+			\newcommand{\nodetexty}[2]{$y_#2$}
+			\newcommand{\nodetexth}[2]{$h_{#1#2}$}
+			\inputlayer[count=4, bias=false, title=Capa de\\entrada, text=\nodetextx]
+			\hiddenlayer[count=5, bias=false, title=Capa\\oculta, text=\nodetexth] \linklayers
+			\outputlayer[count=3, title=Capa de\\salida, text=\nodetexty] \linklayers
+		\end{neuralnetwork}
+		\caption{Red monocapa}
+		\label{fig:metodos/feedforward1}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.49\textwidth}
+		\centering
+		\begin{neuralnetwork}[height=4.7]
+			\newcommand{\nodetextclear}[2]{}
+			\newcommand{\nodetextx}[2]{$x_#2$}
+			\newcommand{\nodetexty}[2]{$y_#2$}
+			\newcommand{\nodetexth}[2]{$h_{#1#2}$}
+			\inputlayer[count=4, bias=false, title=Capa de\\entrada, text=\nodetextx]
+			\hiddenlayer[count=5, bias=false, title=Capa\\oculta, text=\nodetexth] \linklayers
+			\hiddenlayer[count=5, bias=false, title=Capa\\oculta, text=\nodetexth] \linklayers
+			\outputlayer[count=3, title=Capa de\\salida, text=\nodetexty] \linklayers
+		\end{neuralnetwork}
+		\caption{Red multicapa}
+		\label{fig:metodos/feedforward2}
+	\end{subfigure}
 	\label{fig:metodos/feedforward}
+	\caption{Redes neuronales de propagación hacia adelante}
 \end{figure}
+
+\paragraph{Activaciones}
+Las activaciones más usadas son las siguientes.
+\subparagraph{Sigmoidea}
+Consiste en una función cuyo rango va de 0 a 1. Esto permite interpretar su salida como una probabilidad. Es muy usada en tareas de clasificación (figura \ref{fig:metodos/sigmoid}).
+\subparagraph{Sigmoidea ``dura''}
+Se trata de una aproximación de la función sigmoidea a trozos, tal y como se muestra en la figura \ref{fig:metodos/hard-sigmoid}.
+\subparagraph{Tangente hiperbólica}
+Tiene un comportamiento parecido a la sigmoidea, pero su rango va de -1 a 1, y es simétrica. (figura \ref{fig:metodos/tanh}).
+	
+\subparagraph{Rectificador lineal (ReLU)}
+Se trata de la función lineal rectificada. Es muy usada en redes neuronales profundas (explicadas más adelante) debido a las características de la derivada (figura \ref{fig:metodos/relu}).
+
+\paragraph{Errores}
+Para calcular el rendimiento de una red se utilizan los errores a la salida, que consiste en aplicar una función a los valores obtenidos y los deseados. Las funciones más comunes son las siguientes:
+
+\subparagraph{MAE}
+El error absoluto medio (MAE) es la media del valor absoluto de la diferencia de los errores cometidos en cada neurona a la salida. Usado en problemas de regresión lineal (la salida es una curva función de los datos de entrada).
+\subparagraph{MSE}
+El error cuadrático medio (Mean Squared Error) consiste en la media de los cuadrados de la diferencia de los errores cometidos en cada neurona a la salida. Se utiliza también en regresión lineal.
+\subparagraph{Entropía cruzada}
+Su fórmula es $H(p, q) = -\sum_{x}{p(x)\log q(x)}$ y es usada en tareas de clasificación, ya que da un mayor sentido a la probabilidad que representa la salida de este tipo de redes.
+
+\begin{figure}
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/metodos/sigmoid.pdf}
+		\label{fig:metodos/sigmoid}
+		\caption{Función sigmoidea}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/metodos/hard-sigmoid.pdf}
+		\label{fig:metodos/hard-sigmoid}
+		\caption{Función sigmoidea ``dura''}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/metodos/sigmoid.pdf}
+		\label{fig:metodos/tanh}
+		\caption{Tangente hiperbólica}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/metodos/relu.pdf}
+		\label{fig:metodos/relu}
+		\caption{Rectificador lineal}
+	\end{subfigure}
+	\caption{Activaciones}
+	\label{fig:metodos/activations}
+\end{figure}
+\paragraph{Perceptron}
+Fue el primer tipo de red neuronal. La manera de obtener las salidas es igual a la explicada anteriormente.
+
+El entrenamiento de este tipo de red neuronal consiste en minimizar el error de los pesos (relaciones entre las neuronas). Esto significa que, suponiendo que hay un conjunto de pesos que permite obtener la salida correcta para cada una de las entradas, el perceptrón iterará sobre cada uno de los pesos hasta encontrar un subconjunto de estos pesos.
+
+El problema radica en que puede no existir dicho conjunto, y por lo tanto el perceptrón no será capaz de encontrar los pesos.
+
+Es por esto por lo que su uso queda restringido a problemas donde las características sean separables.
+
 \paragraph{Propagación hacia atrás de errores}
-\subsubsection{Redes realimentadas}
+Otra manera de entrenar la red, consisten en encontrar el conjunto de pesos que minimiza una función error, generada por los errores cometidos a la salida de la red.
+
+Al contrario que en el perceptrón, esta tipo de entrenamiento permite encontrar un mínimo local en el espacio de los pesos para el conjunto de datos, aunque estos no sean separables.
+
+El algoritmo de actualización de los pesos usado es el de propagación hacia atrás de errores. Consiste en, a partir del error generado en la salida, se reduce cada uno de los pesos en función de la cantidad de error asociado a dicho peso. Para realizar este algoritmo, se requiere de las derivadas de los errores cometidos en cada neurona, a fin de obtener la relación entre el error final del que cada neurona es responsable.
+
+Hay distintos tipos de algoritmos \cite{gradient_descent} que implementan la propagación hacia atrás de errores.
+
+\subparagraph{Descenso en gradiente}
+Consiste en el algoritmo más sencillo. Dada la relación entre el error total y el generado en por cada peso, modifica el peso de manera proporcional a dicho error. Esto, visto en el espacio de los pesos con respecto al error total, significa descender por la curva en la dirección y sentido de mayor pendiente (de ahí el nombre).
+\subparagraph{Descenso en gradiente estocástico}
+Es como el anterior, pero, en vez de calcular el error para todo el conjunto de datos de entrenamiento, se calcula el error en pequeños grupos y se aplica el algoritmo. Esto produce que el descenso no se produzca en la dirección de máxima pendiente del conjunto, sino del subconjunto. El método funciona porque la media de dichos descensos aproxima el descenso total. Al caso en el que el subconjunto es una sola muestra se le llama aprendizaje online.
+\subparagraph{Momentum}
+Es una modificación al descenso en gradiente, en el que la dirección de descenso se ve alterada por los descensos producidos en iteraciones anteriores. Esto le da la característica de ``velocidad'' al punto de operación.
+\subparagraph{Adam}
+La estimación adaptativa del momento hace uso de la técnica del momento, y adapta la cantidad de descenso en gradiente para cada uno de los parámetros a optimizar, de modo que, los parámetros cuyo rango de operación es más pequeño perciben cambios más pequeños en la actualización de su valor.
+
+\subsubsection{Redes recursivas}
+Las redes recursivas \cite{karpathy} difieren de las redes hacia delante en que las neuronas pueden conectarse entre sí hacia atrás (o consigo mismas), generando en la red una realimentación entre nodos que provoca que la salida de la red no dependa sólo de la entrada, sino del estado de la misma (que varía en función de su historia).
+
+Tienen la capacidad de aprender de sistemas cuyo comportamiento cambia con el tiempo.
+\paragraph{Redes recurrentes}
+Es el tipo de red recursiva más básica. Consiste en un conjunto de neuronas (normalmente agrupados en una capa) cuya salida no depende solamente de las entradas provenientes de capas anteriores, sino que también dependen de las salidas de las neuronas en esa misma capa. De esta manera, el estado de la red cambia conforme cambian las salidas de esta capa.
+\paragraph{LSTM}
+Las redes de memoria a corto y largo plazo (Long Short Term Memory) \cite{hochreiter1997long}\cite{colah} hacen uso de una unidad especial, que consiste en un conjunto de puertas que permiten el flujo de información a través de la neurona. En concreto, cuenta con 3 puertas:
+
+\begin{itemize}
+	\item Puerta de entrada. Su valor varía de 0 a 1 y se multiplica al valor de la entrada de la activación.
+	\item Puerta de salida. Igualmente, su valor varía de 0 a 1 y se multiplica al valor de la salida después de la activación.
+	\item Puerta de olvido. Representa la cantidad del estado anterior que se mantiene.
+\end{itemize}
+
+Todas estas puertas son activaciones sigmoideas que se activan con las entradas de la celda y con el estado de la misma.
+\paragraph{GRU}
+Las celdas GRU (Gated Recurrent Unit) \cite{chung2014empirical} son, al igual que las LSTM, celdas que hacen uso de puertas. Son más sencillas que las anteriores, y requieren menos cómputo, por lo que son más rápidas de entrenar. Cuentan con dos puertas en vez de tres: reinicio y actualización.
+
+La salida es una interpolación lineal del estado anterior y el nuevo estado propuesto, el cual se calcula como una combinación de la entrada y el estado anterior (multiplicado por la puerta de reinicio). La puerta de actualización se calcula a partir del estado anterior y la entrada, al igual que la puerta de reinicio.
 \paragraph{Propagación hacia atrás de errores en el tiempo}
-\subsubsection{Aprendizaje profundo}
+El algoritmo de optimización de parámetros en el tiempo es el mismo usado en las redes hacia delante (propagación hacia atrás de errores), con la peculiaridad de que la red se desenrolla en el tiempo. Esto significa, que las neuronas realimentadas se interconectan entre sí en cada instante temporal (desenrollado). Las pérdidas se calculan de la misma manera, calculando el error en cada instante temporal (si es que se tiene una salida en cada instante) y aplicando el algoritmo de propagación hacia atrás sobre cada neurona.
+
+Esta es la principal razón por la que surgieron las celdas LSTM y GRU, ya que, haciendo uso nada más de las redes recurrentes, se tiene el problema de desvanecimiento y explotación de los pesos de la red \cite{bengio1994learning}. Este fenómeno surge cuando la red se desdobla un número lo suficientemente grande como para que, al propagar hacia atrás el error, debido a la gran dimensionalidad de la red, el error llegue muy reducido (desvanecimiento) o muy amplificado (explotación), impidiendo que, alcanzado este punto, la red aprenda.
+
 \subsection{Regularización}
-\subsubsection{Dropout}
+Las redes neuronales son sistema capaces de aprender a extraer patrones de los datos que se le ofrecen. Por lo tanto, se podría pensar que una red lo suficientemente grande es capaz de extraer cualquier patrón que haya en los datos. Esto es ideal si contamos con una base de datos infinita, ya que cualquier discrepancia entre muestras se tomaría como ruido y la red no aprendería de éste. El problema es que no se puede aprender de una base de datos infinita (el tiempo de cálculo sería igualmente infinito), y no se puede obtener dicha base de datos.
+
+Una vez asumido que no se puede disponer de esta base de datos, nos encontramos con el problema de que, en una base finita, podemos no tener representados todos los casos de estudio que nos interesan, esto es, que la base de datos no sea representativa de la realidad de la que se pretende aprender. En este caso, lo mejor que puede hacer la red es aprender de dichas muestras, y sería incapaz de generalizar para el conjunto no visto (o no visto lo suficiente).
+
+También nos encontramos con que cada muestra por sí misma puede contener ruido (de los sensores, de un error en el proceso de obtención...). En este caso, si no se toman medidas, la red aprenderá también estos patrones, lo que reducirá aumentará el error cuando se enfrente a muestras que no ha visto antes (y sobre las que el ruido ha influido de manera distinta).
+
+Es por esto, por lo que se requieren de técnicas de regularización, para evitar el sobreentrenamiento de la red (overfitting). Algunas de estas técnicas son las siguientes.
+
+\subsubsection{Infradimensionamiento de la red}
+La primera medida que se puede tomar es ajustar el tamaño de la red al problema que se esté abarcando. De esta manera, se elimina el problema de base de que las redes más grandes son las que mejor encuentran patrones (en este caso de estudio, de ruido).
 \subsubsection{L2}
+El problema del sobredimensionamiento es que las neuronas se especializan demasiado (capaces de reconocer el ruido). Esta especialización se da debido a que algunos pesos de interconexión de neuronas se vuelven muy altos, eliminando la influencia que tienen el resto de entradas en una misma neurona.
+
+Una solución a este problema es añadir un error proporcional al cuadrado de los pesos de cada neurona (error L2). De esta manera, los pesos altos (especializados) aumentarán el error, y en el paso de propagación hacia atrás de errores se reducirá dicho peso.
+\subsubsection{L1}
+La regularización L1, al igual que la L2 \cite{ng2004feature}, consiste en la aportación de los pesos al error, pero a diferencia de ésta, esta aportación es lineal proporcional (no cuadrática). Esto ayuda a seleccionar un conjunto de neuronas, que se especializarán, pero, al ser un número reducido de ellas, esta especialización promoverá el aprendizaje de los patrones más importantes de los datos de entrenamiento, y por lo tanto, la eliminación del ruido.
+\subsubsection{Dropout}
+Dropout \cite{gal2015theoretically} es una técnica de regularización que se basa en el hecho de que, la media ponderada de un conjunto de redes neuronales, cada una especializada en un subconjunto de datos, genera unos resultados mejores que cada una de las redes individualmente. Esto se debe a que cada red puede haber adquirido un error distinto, pero al juntarlas, este error disminuye.
+
+El problema es que entrenar redes neuronales es un proceso computacionalmente costoso. Es por esto por lo que esta técnica propone realizar dicha media en la fase de entrenamiento. Para ello, en la fase de propagación hacia adelante, anula cada neurona con una probabilidad $p$, de modo que la salida va a depender de una subconjunto de las neuronas de la red (entre las cuales pueden estar o no las neuronas especializadas). De esta manera, se consigue que las dependencias con las neuronas más especializadas se reparta sobre varias neuronas, de modo que se reduce el error, al depender de varias neuronas, cada una con su versión reducida del error.
+\subsection{Aprendizaje profundo}
+Aprendizaje profundo (Deep Learning) \cite{schmidhuber2015deep}\cite{udacitydeeplearning} es un conjunto de técnicas usadas sobre las redes neuronales que le permiten alcanzar resultados nunca antes conseguidos en el campo del aprendizaje automático.
+
+En un sentido amplio, el aprendizaje profundo consiste en una red neuronal con un gran número de capas y un gran número de neuronas por capas. Esto le da la capacidad de abarcar cualquier problema, pero también tiene el problema de que la red, de no tomar las medidas adecuadas, aprenderá incluso el error que hay en la base de datos de entrenamiento (overfitting).
+
+Este error se disminuye haciendo uso de la técnica de regularización dropout, utilizado en conjunción con el error L2 y/o el error L1.
+
+Este tipo de redes son realmente potentes cuando se entrenan con grande bases de datos de entrenamiento. El problema de estas bases de datos, es que para realizar el algoritmo de propagación hacia atrás de errores, es necesario calcular el error de cada neurona, y para ello hay que calcular la derivada y la aportación de cada neurona al error. Esto supone una gran cantidad de recursos (tanto de procesamiento, realizado en GPU, como de memoria) que en ocasiones no se puede abarcar. Para solucionar este problema, se utilizan algoritmos de propagación hacia atrás de errores basados en la división de la base de entrenamiento en grupos (descenso en gradiente estocástico).
+
+Como se ha comentado, hay que calcular las derivadas para conocer la aportación de cada neurona al error. Esto supone un gran coste computacional, por lo que se utilizan funciones no lineales con derivadas fáciles de calcular, como las activaciones relu o la sigmoide ``dura''.
+
+\subsection{Evaluación}
+Para evaluar el rendimiento de la red neuronal, se divide la base de datos en dos conjuntos, uno de entrenamiento y otro de test. El primero servirá para entrenar la red, cada uno de los pesos. El segundo servirá para calcular el error que comete esa red sobre un conjunto de datos no vistos en el entrenamiento.
+
+Además, se puede dividir los datos en un tercer conjunto, llamado de validación \cite{kohavi1995study}, para ajustar parámetros de la red, como número de neuronas por capa, número de capas, proporción usada en dropout, en L1, L2, distintas topologías... El motivo por el que no se puede usar el conjunto de test para este fin y ha de utilizarse uno distinto, es debido a que este conjunto lo vamos a utilizar para tomar decisiones sobre la red basadas en el rendimiento que se obtiene con dicho conjunto. Es por esto, por lo que el error obtenido en el conjunto de test (de usarse como de validación) no sería válido, ya que la red ha sido diseñada para adaptarse a dicho conjunto, y por lo tanto, a la hora de enfrentarse a datos nuevos, no desempeñaría con la eficacia esperada.
+
 \subsection{Herramientas}
+Diseñar los algoritmos mencionados no es tarea fácil, y mucho menos hacerlo con la eficiencia que se necesita para que estas técnicas sean viables. Es por esto por lo que existen diversas plataformas de diseño de redes neuronales, con los algoritmos de propagación hacia atrás de errores, las topologías, activaciones y métodos de regularización ya implementadas.
+
+Entre ellas se encuentran \textit{Theano}, \textit{Tensorflow} \cite{tensorflow}, \textit{Caffe} \cite{caffe}, \textit{Torch} \cite{torch}... Además, contamos con librerías que, sobre estas anteriores, ofrecen una capa de abstracción para diseñar y entrenar redes neuronales profundas, como Keras \cite{keras} y Lasagne \cite{lasagne}.
+
+Las librerías usadas en este trabajo son \textit{Tensorflow} y \textit{Keras}, debido a que están escritos en Python (facilitando la integración con la API de Baxter, así como \textit{rospy}) y que cuentan con una gran comunidad detrás que hace sencillo su aprendizaje y la resolución de problemas que van surgiendo conforme se va desarrollando.
 \subsubsection{Tensorflow}
+Creada por Google, esta librería se basa en la descripción de la red mediante variables simbólicas. El conjunto de estas variables y las relaciones entre ellas se denominan gráficos. Una vez creados los gráficos, se ejecutan en el contexto de sesiones, ofreciendo así una forma de abstracción con respecto a lo que sucede en los gráficos. Estas sesiones pueden ejecutarse en CPUs, o más eficientemente, en GPUs.
+
+Las gráficas se forman relacionando nodos mediante operaciones con tensores. Un tensor es un vector n-dimensional. Los nodos pueden ser de entrada, constantes, variables, o módulos que implementan operaciones más complejas ya creados, como \texttt{matmul} (multiplicación y suma), o \texttt{Gradient\-Descent\-Optimizer}.
+
+A continuación, la gráfica se carga en una sesión, se le ofrecen los valores que necesita (entradas, valores auxiliares) y se le piden los nodos que se necesitan (el de entrenamiento, para que ejecute un paso de descenso en gradiente). Las gráficas, al igual que los datos necesarios para su ejecución, se cargan completamente en la CPU/GPU, de modo que no son necesarias hacer llamadas al sistema para adquirir los recursos, haciendo la computación mucho más rápido.
+\paragraph{Tensorboard}
+Dentro de \textit{tensorflow} tenemos la utilidad \textit{tensorboard}, que es una herramienta para visualizar el entrenamiento. En ella se puede monitorizar el error de la red en función del tiempo, así como la distribución de los pesos en cada una de las capas. Es una herramienta útil para saber si la red sufre de overfitting y las razones por las que lo hace.
+
 \subsubsection{Keras}
+\textit{Keras} por su parte, es una librería que ofrece al desarrollador una serie de funciones que permiten la abstracción de las operaciones que se ejecutan por debajo (sobre \textit{tensorflow} o \textit{theano}). Está creada especialmente para diseñar redes profundas. Cuenta con módulos como \texttt{Dense}, que no es más que una capa totalmente conectada con la siguiente, así como \texttt{GRU}, que implementa una capa formada por celdas GRU. También incluye los métodos de regularización explicados anteriormente, así como las activaciones.
+
+Se usa diseñando la red en el entorno de un modelo. Tiene dos manera de crearla: secuencial, y utilizando directamente los modelos. La primera permite crear de manera sencilla una red donde cada capa se conecta con la siguiente, con una capa de entrada y otra de salida. La segunda permite configuraciones más complejas, como dividir la red en varias subredes, aceptar distintas entradas, y distintas salidas.
+
+Una vez generado el modelo, sólo hace falta compilarlo (diciéndole qué algoritmo queremos usar para la fase de optimización, así como el tipo de error usado) y ejecutar la orden \texttt{fit}, que realiza una iteración sobre todo el conjunto de entrenamiento que le hayamos dado. Esta orden permite especificar el tamaño del grupo usado para realizar cada paso en la optimización (descenso en gradiente estocástico).
 \section{Controladores}
 \subsection{Error distal}
 \subsection{Control realimentado}

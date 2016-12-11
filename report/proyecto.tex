@@ -183,6 +183,10 @@ pdfproducer = {pdflatex}
 
 \usepackage{pdfpages}
 \usepackage{siunitx}
+
+\newlength{\twosubht}
+\newsavebox{\twosubbox}
+\usepackage{wrapfig}
 \begin{document}
 \input{portada/portada}
 \input{prefacios/prefacio}
@@ -221,7 +225,7 @@ pdfproducer = {pdflatex}
 %
 %
 %%\nocite{*}
-\bibliographystyle{unsrt}
+\bibliographystyle{plainurl}
 \bibliography{bibliografia/bibliografia}\addcontentsline{toc}{chapter}{Bibliografía}
 %
 %\appendix
