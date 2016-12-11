@@ -12,7 +12,7 @@ from keras.layers import RepeatVector, Dense, Input, TimeDistributed, Dropout, C
 from keras.models import Model
 from keras.optimizers import Adam
 from keras.preprocessing.sequence import pad_sequences
-from keras.regularizers import l1
+from keras.regularizers import l2
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.preprocessing.data import StandardScaler
 
@@ -53,15 +53,15 @@ class MyModel(object):
         return mask
 
     def set_model(self, gru_width=100, gru_depth=2, dense_width=500, dense_depth=2, conv=False, conv_width=100,
-                  conv_filter=3, dropout_fraction=0.5, l1_weight=0.0, **kwargs):
-        inputs = Input(shape=(15,))
+                  conv_filter=3, dropout_fraction=0.5, l2_weight=0.0, **kwargs):
+        inputs = Input(shape=(22,))
 
         x = RepeatVector(self.max_unroll)(inputs)
         x = TimeDistributed(Dense(64, init='normal', activation='relu'), name='hidden_pre_GRU')(x)
         x = Dropout(dropout_fraction)(x)
         for i in range(gru_depth):
             x = GRU(gru_width, return_sequences=True, init='normal', activation='relu', dropout_U=dropout_fraction,
-                    dropout_W=dropout_fraction, W_regularizer=l1(l1_weight), U_regularizer=l1(l1_weight))(x)
+                    dropout_W=dropout_fraction, W_regularizer=l2(l2_weight), U_regularizer=l2(l2_weight))(x)
             x = Dropout(dropout_fraction)(x)
             if conv:
                 x = Convolution1D(conv_width, conv_filter, border_mode='same')(x)
@@ -150,10 +150,11 @@ def main():
 
     x_target = np.array(target_pos)
     x_first = np.array([pos_[0] for pos_ in pos])
+    v_first = np.array([vel_[0] for vel_ in vel])
     x_speed = np.array(target_speed).reshape((-1, 1))
     aux_output = [np.ones(eff_.shape[0]).reshape((-1, 1)) for eff_ in effort]
 
-    x = np.concatenate((x_target, x_first, x_speed), axis=1)
+    x = np.concatenate((x_target, x_first, v_first, x_speed), axis=1)
 
     def prepare_time_data(data):
         data_scaler = StandardScaler()
@@ -186,14 +187,14 @@ def main():
         os.makedirs('save_model_selection')
 
     for (train_index, cv_index), i in zip(kf.split(x), range(kf.n_splits)):
-        widths_gru = [1000] * 4
-        depths_gru = [1] * 4
-        dropout_fractions = [0.5, 0.5, 0.6, 0.6] * 2
-        convolution_layer = [False] * 4
-        l1_weights = [1e-6, 1e-3] * 2
-        names = ['gru:{}-{}_conv:{}_dropout:{}_l1:{}/fold:{}'.format(width_, depth_, conv_, drop_, l1_, i) for
-                 width_, depth_, conv_, drop_, l1_ in
-                 zip(widths_gru, depths_gru, convolution_layer, dropout_fractions, l1_weights)]
+        widths_gru = [1000]
+        depths_gru = [1]
+        dropout_fractions = [0.5]
+        convolution_layer = [False]
+        l2_weights = [1e-3]
+        names = ['gru:{}-{}_conv:{}_dropout:{}_l2:{}/fold:{}'.format(width_, depth_, conv_, drop_, l2_, i) for
+                 width_, depth_, conv_, drop_, l2_ in
+                 zip(widths_gru, depths_gru, convolution_layer, dropout_fractions, l2_weights)]
         save_names = ['save_model_selection/' + name_ for name_ in names]
         log_names = ['log_model_selection/' + name_ for name_ in names]
         img_names = ['imgs/' + name_ for name_ in names]
@@ -203,8 +204,8 @@ def main():
         this_x_cv, this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv, this_mask_cv, this_aux_mask_cv = \
             [a_[cv_index] for a_ in [x, torque, pos, vel, aux, mask, aux_mask]]
 
-        for width_gru, depth_gru, dropout_fraction, conv, l1_weight, save_name, log_name, img_name in \
-                zip(widths_gru, depths_gru, dropout_fractions, convolution_layer, l1_weights,
+        for width_gru, depth_gru, dropout_fraction, conv, l2_weight, save_name, log_name, img_name in \
+                zip(widths_gru, depths_gru, dropout_fractions, convolution_layer, l2_weights,
                     save_names, log_names, img_names):
             model = MyModel(train=[this_x, [this_torque, this_pos, this_vel, this_aux]],
                             val=[this_x_cv, [this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv]],
@@ -214,7 +215,7 @@ def main():
                             max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
                             width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2,
                             torque_scaler=effort_scaler, conv=conv, dropout_fraction=dropout_fraction,
-                            l1_weight=l1_weight)
+                            l2_weight=l2_weight)
             if args.train:
                 model.fit(nb_epoch=n_epoch, batch_size=512)
             elif args.resume:
