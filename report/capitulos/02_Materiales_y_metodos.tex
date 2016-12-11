@@ -1,7 +1,7 @@
 \chapter{Materiales y métodos}
 \newcommand{\ros}{\texttt{ROS}}
 \section{\ros}
-\ros (Robot Operative System) es un sistema operativo de código abierto basado en paso de mensajes diseñado para plataformas robóticas. Sus usos van desde el diseño de drivers, a resolver problemas complejos como la navegación autónoma.
+\ros (Robot Operative System) \cite{ros} es un sistema operativo de código abierto basado en paso de mensajes diseñado para plataformas robóticas. Sus usos van desde el diseño de drivers, a resolver problemas complejos como la navegación autónoma.
 
 La filosofía del sistema operativo es permitir a los desarrolladores abarcar de manera independiente los problemas que surgen al desarrollar una plataforma robótica, de modo que cada módulo pueda comunicarse con el resto, y que no haya que rediseñar un programa cuando se quiere cambiar de plataforma (y que una misma plataforma se beneficie de la implementación de distintos programas).
 
@@ -39,10 +39,12 @@ Adicionalmente, la cámara tiene habilitado un servicio para reiniciar la cámar
 
 \section{Baxter}
 % Describir temas fundamentales
-\subsection{Disposición}
-% en el laboratorio, cómo se ha trabajado con él
+El robot biomórfico Baxter se trata de un robot de bajo coste (28.000 euros) y de baja fuerza, capaz de trabajar en entornos seguros, con otras personas a su alrededor. Esto se debe al uso de motores de bajo torque, así como del uso de actuadores elásticos en serie \cite{pratt1995series}.
+
+Cuenta con un modelo de movimiento automático basado en aprendizaje de ejemplos dados por una persona, lo que permite a personal no cualificado enseñarle a realizar tareas.
 \subsection{Hardware}
 % Explicar hardware y software de Baxter (procesador, JCBs, ros, interfaz de comunicación (baxter.sh))
+\subsubsection{Estructura física}
 El robot cuenta con:
 
 \begin{itemize}
@@ -75,6 +77,28 @@ Dichas articulaciones se pueden observar en la figura \ref{fig:desarrollo/joints
 	\label{fig:desarrollo/joints}
 \end{figure}
 
+\subsubsection{Procesamiento}
+En el interior del Baxter contamos con un procesador Intel Core i7-3770 a 3.4 GHz con tarjeta gráfica integrada, 4 GB de memoria RAM, y 128 GB de disco duro SSD.
+
+\subsubsection{Actuadores elásticos en serie}
+Los motores utilizados para las articulaciones utilizan actuadores elásticos en serie, en contraposición a los actuadores rígidos, usados en tareas de gran precisión.
+
+Los actuadores rígidos basan su correcto funcionamiento en la cantidad de torque que pueden aplicar: a mayor torque, mayor precisión. Suelen ser controlados sin realimentación, y basan su control en un mapeo de voltajes y posiciones. Al tener tanto torque los motores, cualquier fuerza externa se vuelve despreciable, por lo que se puede confiar su control a uno basado en el conocimiento del motor.
+
+Es este gran torque el que hace que los robots diseñados con estos motores no sean seguros para las personas. Los robots industriales en cadenas de montaje usan este tipo de actuadores.
+
+Por otro lado, los actuadores elásticos basan su funcionamiento en la cantidad de torque que aplican, lo que significa que un controlador basado en realimentación es necesario, ya que el motor no conoce la posición en la que está, sino el torque que está aplicando. Esto lo consigue haciendo uso de elementos elásticos, los cuales aplican una fuerza sobre el objeto a mover. La posición de dicho objeto se mide y se transmite al controlador, que aplicará la fuerza correspondiente.
+
+Los robots basados en estos actuadores son más seguros, ya que la cantidad de torque se puede controlar, ya sea por software o por la propia construcción hardware. Baxter utiliza este tipo de actuadores.
+
+\subsection{Disposición}
+Para trabajar con el robot se dispone de un laboratorio de dimensiones reducidas, teniendo en cuenta el rango de movimiento del robot y la compartición del espacio con más gente.
+
+Además del robot, es necesario un equipo de trabajo, que consistirá en un ordenador de sobremesa con un procesador Intel Core i7-5930k a 3.5 GHz, 32 GB de memoria RAM y 200 GB de disco SSD y 1 TB de disco HDD.
+
+Este equipo se usará para comunicarse con el robot, ejecutando el programa en el ordenador y transmitiendo mensajes entre el robot y éste haciendo uso de \ros.
+
+\subsection{Modos de control}
 Cada brazo se puede controlar de manera independiente, pudiendo usar cada uno de ellos con un modo de control distinto. Los modos de control son los que se muestran a continuación:
 
 \begin{enumerate}
@@ -87,7 +111,7 @@ Cada brazo se puede controlar de manera independiente, pudiendo usar cada uno de
 Haciendo uso de la arquitectura de paso de mensajes que nos ofrece \ros, somos capaces de enviar en un tema (topic) tanto el modo de control que queremos usar como las características objetivos que queremos en el movimiento. El robot Baxter estará escuchando cada uno de los mensajes que le enviemos a los temas \texttt{/robot/limb/left/joint\_command} para el brazo izquierdo y \texttt{/robot/limb/right/joint\_command} para el brazo derecho. El tipo de mensaje que se envía es \texttt{JointCommand}, que tiene como argumentos:
 
 \begin{itemize}
-\item mode (POSITION\_MODE=1, VELOCITY\_MODE=2, TORQUE\_MODE=3, RAW\_POSITION\_MODE=4)
+\item mode (POSITION\_MODE=1, VELOCITY\_MODE=2,\\TORQUE\_MODE=3, RAW\_POSITION\_MODE=4)
 \item command (lista de flotantes)
 \item names (lista de nombre de articulaciones)
 \end{itemize}
@@ -116,103 +140,118 @@ Art.                    & (rad) Mín & (rad) Máx & (rad) Rango & (rad/s) Vel m�
 % Ratio de velocidad
 
 \subsection{API de \ros}\label{sec:api-de-ros}
-Los temas que registraremos serán:
+Baxter hace uso de \ros para comunicarse internamente, así como para recibir y enviar información con el exterior.
+
+La interfaz de programación de aplicaciones (API) de Baxter con respecto a \ros pone a disposición del programador de los tipos de mensajes y servicios usados por el mismo, así como de los temas publicados para su control.
+
+En este trabajo se hace uso de los siguientes temas:
 
 \begin{itemize}
-\item \texttt{/robot/joint\_states} Tanto la posición como la velocidad y torque de las articulaciones del brazo izquierdo.
-\item \texttt{/robot/limb/left/set\_speed\_ratio} Ratio de velocidad deseada.
-\item \texttt{/robot/limb/left/joint\_command} Posiciones deseadas.
+\item \texttt{/robot/joint\_states} Publica información tanto de la posición como de la velocidad y torque de las articulaciones de todas las articulaciones.
+\item \texttt{/robot/limb/left/set\_speed\_ratio} Tema al que publicar para ajustar la ratio de velocidad usada por cada articulación del brazo izquierdo (única para todas).
+\item \texttt{/robot/limb/left/joint\_command} Tema al que publicar para mover el brazo a las posiciones deseadas del brazo izquierdo (una para cada articulación).
 \end{itemize}
-subsubsec:metodos/pythonAPI\subsection{API de Python}
+
+\subsection{API de Python}
 \label{subsubsec:metodos/pythonAPI}
 La API tiene como objetivo disponer una interfaz basada en el lenguaje de programación Python para controlar y monitorizar el robot Baxter, ejecutando en su base las correspondientes instrucciones \ros. Para ello, cuenta con una serie de módulos orientados a los distintos componentes del robot (brazos, pinzas, cámara...).
 
 Se hará uso del módulo \texttt{brazo} para realizar el movimiento del mismo. Por motivos de disposición del robot en el laboratorio, se extraerá la base de datos haciendo uso del brazo izquierdo.
 
+\begin{sloppypar}
 Dentro de este módulo, se hará uso de las funciones \texttt{set\_joint\_position\_speed(speed)} y \texttt{move\_to\_joint\_positions(positions)}. La primera controlará la velocidad máxima relativa para cada articulación, mientras que la segunda moverá el brazo a la posición deseada. Esta función cuenta además con un intervalo de tiempo máximo para realizar el movimiento. Que el tiempo máximo se agote será indicador de que el robot no puede alcanzar la posición deseada (está colisionando consigo mismo).
+\end{sloppypar}
 
-Un dato a tener en cuenta es que la función \texttt{move\_to\_joint\_positions(positions)} realiza un filtro paso baja de la diferencia de posiciones (actual y deseada) en el tiempo, ofreciendo un movimiento más fluido.
+La función \texttt{move\_to\_joint\_positions(positions)} realiza un filtro paso baja de la diferencia de posiciones (actual y deseada) en el tiempo, ofreciendo un movimiento más fluido.
 \subsection{Mecanismos de control}
 \label{subsec:metodos/control_baxter}
 \subsubsection{Control por posición}
 El control por posición consiste en alcanzar las posiciones objetivo para cada una de las articulaciones. El modo de control en el mensaje JointCommand es el 1.
 
-La orden donde todas las articulaciones se ponen en la posición 0 corresponde con el brazo totalmente estirado y con el hombro, codo y muñeca mirando hacia abajo. Las traslaciones y rotaciones se corresponden con los de la figura \ref{fig:desarrollo/joint_map}.
+La orden donde todas las articulaciones se ponen en la posición 0 corresponde con el brazo totalmente estirado y con el hombro, codo y muñeca mirando hacia abajo. Las traslaciones y rotaciones se corresponden con los de la figura \ref{fig:metodos/limits}.
 
+%\begin{center}
+%	\resizebox{.9\textwidth}{!}{
+%		\includegraphics[height=\baselineskip]{imagenes/metodos/baxter_range_motion1.png}
+%		\label{algo} \quad
+%	\includegraphics[height=\baselineskip]{imagenes/metodos/baxter_range_motion2.png}
+%	\label{algo2}
+%	}
+%\end{center}
 \begin{figure}[]
 	\centering
 	\begin{subfigure}[b]{0.4\textwidth}
-		\includegraphics[width=\textwidth]{imagenes/metodos/baxter_range_motion1.png}
+		\includegraphics[trim=0 0 0 10, clip, width=\textwidth]{imagenes/metodos/baxter_range_motion1.png}
 		\caption{Límites traslación}
-		\label{fig:desarrollo/limits1}
+		\label{fig:metodos/limits1}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.4\textwidth}
 		\includegraphics[width=\textwidth]{imagenes/metodos/baxter_range_motion2.png}
 		\caption{Límites rotación}
-		\label{fig:desarrollo/limits2}
+		\label{fig:metodos/limits2}
 	\end{subfigure}
 	\caption{Límites articulaciones}
-	\label{fig:desarrollo/limits}
+	\label{fig:metodos/limits}
 \end{figure}
 
-Dada la naturaleza del robot Baxter, en este modo de operación se aplican unos filtros antes de aplicar la orden de posición, a fin de evitar accidentes y otorgar una experiencia de movimiento más fluida y segura. Los filtro son los que se muestran en la figura \ref{fig:desarrollo/position_filters}.
+Dada la naturaleza del robot Baxter, en este modo de operación se aplican unos filtros antes de aplicar la orden de posición, a fin de evitar accidentes y otorgar una experiencia de movimiento más fluida y segura. Los filtros son los que se muestran en la figura \ref{fig:metodos/position_filters}.
 
 \begin{figure}[]
 	\centering
 	\begin{subfigure}[b]{0.24\textwidth}
 		\includegraphics[trim=0 0 235 0, clip, width=\textwidth]{imagenes/metodos/baxter_position_filters.png}
 		\caption{Control por posición}
-		\label{fig:desarrollo/position_filters}
+		\label{fig:metodos/position_filters}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.24\textwidth}
 		\centering
 		\includegraphics[trim=0 0 230 0, clip, width=\textwidth]{imagenes/metodos/baxter_position_raw_filters.png}
 		\caption{Control por posición sin procesar}
-		\label{fig:desarrollo/raw_filters}
+		\label{fig:metodos/raw_filters}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.24\textwidth}
 		\centering
 		\includegraphics[trim=0 0 235 0, clip, width=\textwidth]{imagenes/metodos/baxter_velocity_filters.png}
 		\caption{Control por velocidad}
-		\label{fig:desarrollo/vel_filters}
+		\label{fig:metodos/vel_filters}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.24\textwidth}
 		\centering
 		\includegraphics[trim=0 0 230 0, clip, width=\textwidth]{imagenes/metodos/baxter_torque_filters.png}
 		\caption{Control por torque}
-		\label{fig:desarrollo/torque_filters}
+		\label{fig:metodos/torque_filters}
 	\end{subfigure}
 	\caption{Filtros aplicados}
 \end{figure}
 
 \begin{enumerate}
-\item [Escalado delta] Consiste en escalar las posiciones objetivo en el recorrido para conseguir que todas las articulaciones lleguen al punto deseado a la vez.
-\item [Escalado de velocidad] Se escala la velocidad de cada articulación en función del 'ratio de velocidad'.
-\item [Escalado de alta velocidad] Para evitar colisiones entre los dos brazos moviéndose el uno en la dirección del otro, se escala la velocidad y recalcula la posición cuando ésta supera un umbral.
-\item [Prevención de colisiones] Gracias a un modelo interno del robot, se limitan las posiciones de las articulaciones tales que provocarían un choque con el propio robot.
-\item [Recorte de posiciones] Si las posiciones superan los límites de la articulación, estas se recortan al límite permitido.
-\item [Detección de colisión] Si se detecta una colisión (con un objeto externo al robot), mantiene la última posición antes de la colisión.
+\item {Escalado delta.} Consiste en escalar las posiciones objetivo en el recorrido para conseguir que todas las articulaciones lleguen al punto deseado a la vez.
+\item {Escalado de velocidad.} Se escala la velocidad de cada articulación en función del 'ratio de velocidad'.
+\item {Escalado de alta velocidad.} Para evitar colisiones entre los dos brazos moviéndose el uno en la dirección del otro, se escala la velocidad y recalcula la posición cuando ésta supera un umbral.
+\item {Prevención de colisiones.} Gracias a un modelo interno del robot, se limitan las posiciones de las articulaciones tales que provocarían un choque con el propio robot.
+\item {Recorte de posiciones.} Si las posiciones superan los límites de la articulación, estas se recortan al límite permitido.
+\item {Detección de colisión.} Si se detecta una colisión (con un objeto externo al robot), mantiene la última posición antes de la colisión.
 \end{enumerate}
 
 Como se puede observar, Baxter aplica unos filtros para evitar y detectar colisiones. Esta tarea se realiza de tres maneras:
 
 \begin{itemize}
-\item [Prevención] El robot ejecuta una simulación interna, donde las articulaciones y el cuerpo cuentan con unas regiones de seguridad que, al tocarse, limitan el movimiento del robot.
-\item [Detección de colisión] Esto se realiza de dos maneras
+\item {Prevención.} El robot ejecuta una simulación interna, donde las articulaciones y el cuerpo cuentan con unas regiones de seguridad que, al tocarse, limitan el movimiento del robot.
+\item {Detección de colisión.} Esto se realiza de dos maneras
 \begin{enumerate}
 \item [Impacto] Cuando el torque de cualquier articulación cambia bruscamente, se considera que ha habido una colisión.
 \item [Retención] Cuando el torque aplicado aumenta pero la articulación no se mueve, se considera que está colisionando con un objeto inmóvil.
 \end{enumerate} 
-\item [Escalado de alta velocidad] Cuando la velocidad del brazo supera los 0.2 m/s, las regiones de seguridad que el robot simula internamente aumentan. Cuando se tocan estas regiones, la velocidad se escala y la posición se recalcula.
+\item {Escalado de alta velocidad.} Cuando la velocidad del brazo supera los 0.2 m/s, las regiones de seguridad que el robot simula internamente aumentan. Cuando se tocan estas regiones, la velocidad se escala y la posición se recalcula.
 \end{itemize}
 
 \subsubsection{Control por posición sin procesar}
-Este modo de control, al igual que el anterior, tiene como objetivo alcanzar la posición deseada para cada articulación. Se diferencia en los filtros que aplica (figura \ref{fig:desarrollo/raw_filters}).
+Este modo de control, al igual que el anterior, tiene como objetivo alcanzar la posición deseada para cada articulación. Se diferencia en los filtros que aplica (figura \ref{fig:metodos/raw_filters}).
 
 \begin{enumerate}
-\item [Recorte de delta máximo] Recorta la posición siguiente (en el intervalo de actuación de cada articulación) a la máxima posición alcanzable a la velocidad máxima dada por la 'ratio de velocidad'.
-\item [Recorte de posiciones] Al igual que en el modo de control anterior, si las posiciones superan los límites de la articulación, estas se recortan al límite permitido.
-\item [Detección de colisión] Cumple la misma función que en el modo de control por posición.
+\item {Recorte de delta máximo.} Recorta la posición siguiente (en el intervalo de actuación de cada articulación) a la máxima posición alcanzable a la velocidad máxima dada por la 'ratio de velocidad'.
+\item {Recorte de posiciones.} Al igual que en el modo de control anterior, si las posiciones superan los límites de la articulación, estas se recortan al límite permitido.
+\item {Detección de colisión.} Cumple la misma función que en el modo de control por posición.
 \end{enumerate}
 
 Como se puede observar, este es un modo de control más avanzado, ya que no tiene en cuenta las colisiones consigo mismo, y ofrece un movimiento más brusco al no llegar todas las articulaciones al punto destino a la vez.
@@ -220,31 +259,39 @@ Como se puede observar, este es un modo de control más avanzado, ya que no tien
 El modo de control en el mensaje JointCommand es el 4.
 
 \subsubsection{Control por velocidad}
-En este modo de control, lo que se busca es adquirir la velocidad objetivo para cada articulación. El modo de control en el mensaje JointCommand es el 2. Al igual que en los modos anteriores, se aplican una serie de filtros (figura \ref{fig:desarrollo/vel_filters}).
+En este modo de control, lo que se busca es adquirir la velocidad objetivo para cada articulación. El modo de control en el mensaje JointCommand es el 2. Al igual que en los modos anteriores, se aplican una serie de filtros (figura \ref{fig:metodos/vel_filters}).
 
 \begin{enumerate}
-\item [Escalado de alta velocidad] Como en el control por posición.
-\item [Prevención de colisiones] Como en el control por posición.
-\item [Recorte de velocidades] Se limitan las velocidades para cada articulación para que no excedan el máximo permitido.
-\item [Comprobación de límites] Se comprueban los límites de las articulaciones. Si se exceden, se detiene el movimiento.
-\item [Detección de colisión] Igual que en el control por posición.
+\item {Escalado de alta velocidad.} Como en el control por posición.
+\item {Prevención de colisiones.} Como en el control por posición.
+\item {Recorte de velocidades.} Se limitan las velocidades para cada articulación para que no excedan el máximo permitido.
+\item {Comprobación de límites.} Se comprueban los límites de las articulaciones. Si se exceden, se detiene el movimiento.
+\item {Detección de colisión.} Igual que en el control por posición.
 \end{enumerate}
 
 El dejar de enviar velocidades si se exceden los límites de las articulaciones es una medida de seguridad que exige al programador tener el control sobre las posiciones que puede alcanzar el brazo.
 
 \subsubsection{Control por torque}
-El control por torque consiste en el modo de más bajo nivel que se puede controlar el robot Baxter. Los torques que enviemos serán aplicados por los controladores, haciendo uso solamente de los siguientes filtros (figura \ref{fig:desarrollo/torque_filters}):
+El control por torque consiste en el modo de más bajo nivel que se puede controlar el robot Baxter. Los torques que enviemos serán aplicados por los controladores, haciendo uso solamente de los siguientes filtros (figura \ref{fig:metodos/torque_filters}):
 
 \begin{enumerate}
-\item [Compensación] Los torques se suman a los necesarios para mantener la gravedad 0 y el muelle ubicado en la articulación s1 (traslación del hombro).
-\item [Escalado de torque] Si un torque excede el torque máximo para esa articulación, escala los torques de todas las articulaciones por el factor de exceso de esa articulación (torque\_max/torque).
+\item {Compensación.} Los torques se suman a los necesarios para mantener la gravedad 0 y el muelle ubicado en la articulación s1 (traslación del hombro).
+\item {Escalado de torque.} Si un torque excede el torque máximo para esa articulación, escala los torques de todas las articulaciones por el factor de exceso de esa articulación (torque\_max/torque).
 \end{enumerate}
 
-La compensación de la gravedad se puede desactivar mandando un mensaje vacío al tema \texttt{/robot/limb/right/suppress\_gravity\_compensation} para el brazo derecho, o \texttt{/robot/limb/left/suppress\_gravity\_compensation} para el brazo izquierdo.
+La compensación de la gravedad se puede desactivar mandando un mensaje vacío al tema \texttt{/robot\-/limb\-/right\-/suppress\_\-gravity\_\-compensation} para el brazo derecho, o \texttt{/robot\-/limb\-/left/\-suppress\_\-gravity\_\-compensation} para el brazo izquierdo.
 
 De esta manera, un torque aplicado de 0 en todas las articulaciones, mantendrá el brazo en un estado de gravedad 0 si la compensación esta activa. De no estarlo, el brazo caerá en peso muerto.
 
-\subsection{Simulador}
+\subsection{Simuladores}
+\subsubsection{V-REP}
+V-REP es un simulador robótico muy potente, con una gran cantidad de modelos predefinidos listos para simular, y una gran cantidad de opciones para configurar.
+
+\subsubsection{Gazebo}
+Al igual que V-REP, es un simulador de plataformas robóticas. Es menos potente, y tiene menos modelos predefinidos, pero está integrado con \ros, y el robot Baxter cuenta con un modelo listo para simular para el mismo, por lo que es la opción elegida para realizar las pruebas.
+
+\paragraph{Problemas}
+La versión del simulador en la que está implementada es la 2.2, mientras que la que se puede descargar ahora es la 7.1. Esto hace que no sea lo potente que debiera, y a la hora de realizar simulaciones utilizando el control por torques, el simulador no responde igual que el robot, por lo que su uso quedó limitado a las primeras pruebas que se hicieron en una primera aproximación al control por posición del robot.
 
 \section{Redes Neuronales}
 Una red neuronal artificial es un conjunto de algoritmos de aprendizaje automático capaces de extraer modelos a partir de un conjunto de datos de aprendizaje. De esta manera, estos sistemas son capaces de emular la fuente generadora de datos y producir salidas coherentes a partir de entradas no vistas con anterioridad.
@@ -270,6 +317,9 @@ Las conexiones entre las neuronas es de un solo sentido, de modo que no se forma
 \subsubsection{Redes realimentadas}
 \paragraph{Propagación hacia atrás de errores en el tiempo}
 \subsubsection{Aprendizaje profundo}
+\subsection{Regularización}
+\subsubsection{Dropout}
+\subsubsection{L2}
 \subsection{Herramientas}
 \subsubsection{Tensorflow}
 \subsubsection{Keras}
