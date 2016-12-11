@@ -33,7 +33,7 @@ class MyModel(object):
         self.torque_scaler = torque_scaler
 
         if not os.path.exists(self.save_path):
-            os.mkdir(self.save_path)
+            os.makedirs(self.save_path)
         if not os.path.exists(self.img_path):
             os.makedirs(self.img_path)
 
