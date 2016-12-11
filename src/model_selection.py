@@ -191,7 +191,7 @@ def main():
         dropout_fractions = [0.5, 0.5, 0.6, 0.6] * 2
         convolution_layer = [False] * 4
         l1_weights = [1e-6, 1e-3] * 2
-        names = ['gru:{}-{}_conv:{}_dropout:{}_l1:{}_fold:{}'.format(width_, depth_, conv_, drop_, l1_, i) for
+        names = ['gru:{}-{}_conv:{}_dropout:{}_l1:{}/fold:{}'.format(width_, depth_, conv_, drop_, l1_, i) for
                  width_, depth_, conv_, drop_, l1_ in
                  zip(widths_gru, depths_gru, convolution_layer, dropout_fractions, l1_weights)]
         save_names = ['save_model_selection/' + name_ for name_ in names]
