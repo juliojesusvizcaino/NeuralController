@@ -1,6 +1,6 @@
 \chapter{Diseño experimental y resultados}
 En este capítulo se explicarán las decisiones tomadas en cuanto al diseño del experimento con el fin de alcanzar los objetivos previamente mencionados, así como los resultados obtenidos de dicho experimento.
-\subsection{Trabajo previo}
+\section{Trabajo previo}
 En un principio, se quería extraer una base de datos de torques aplicados sobre una sola articulación, manteniendo el resto en una posición fija. A partir de esta base de datos, se diseñaría y entrenaría una red neuronal que aprendiera las posiciones alcanzadas al aplicar una serie de torques durante un intervalo de tiempo. Esta red sería capaz de generar la secuencia de torques a partir de la posición objetivo y la actual, de acuerdo a los datos extraídos en el experimento.
 
 Para ello, en primer lugar se estudiaron las herramientas necesarias para llevar a cabo el proyecto. Estas son: \ros, la API de Baxter y en un principio, el simulador robótico V-REP. Primero se aprendió a usar V-REP, realizando el tutorial que aparece en su manual. Con él se aprendió a realizar un robot con dos ruedas y un sensor de proximidad, capaz de moverse de manera autónoma.
@@ -19,7 +19,7 @@ Una vez familiarizados con el robot y su control, se decide crear un programa qu
 
 El controlador no funcionaba como se esperaba, produciendo muchas micro-oscilaciones y oponiendo poca fuerza al intentar mover el brazo, lo que supondría obtener muestras muy ruidosas de la articulación de la cual se deseaba obtener una base de datos. A partir de las constantes anteriores, se intentaron ajustar los parámetro del PID a mano, haciendo uso de un paquete de \ros que implementa el controlador PID y cuyos parámetros se pueden cambiar sobre la marcha. Los resultados mejoraron, pero seguían sin ser satisfactorios.
 
-Se estudiaron técnicas de inteligencia artificial de ajuste de parámetros, como colonias de hormigas, recocido simulado, o algoritmos genéticos. Se implementó el algoritmo de recocido simulado sobre el PID, calculando el error del mismo como el error absoluto medio ponderado en el tiempo de la posición deseada y las recogidas. Pero las muestras eran muy ruidosas, y una misma configuración de parámetros devolvían errores muy distintos, además que, debido a las grandes fuerzas que aplicaba el robot, éste se paraba durante unos minutos, haciendo inviable el aprendizaje con este tipo de algoritmos, que requiere de miles de iteraciones.
+Se estudiaron técnicas de inteligencia artificial de ajuste de parámetros \cite{wright2015coordinate}\cite{ruge2012aplicacion}, como colonias de hormigas, recocido simulado, o algoritmos genéticos. Se implementó el algoritmo de recocido simulado sobre el PID, calculando el error del mismo como el error absoluto medio ponderado en el tiempo de la posición deseada y las recogidas. Pero las muestras eran muy ruidosas, y una misma configuración de parámetros devolvían errores muy distintos, además que, debido a las grandes fuerzas que aplicaba el robot, éste se paraba durante unos minutos, haciendo inviable el aprendizaje con este tipo de algoritmos, que requiere de miles de iteraciones.
 
 Es por esto por lo que se reestructuró el diseño del problema. Si no se era capaz de encontrar un controlador que mantuviese las articulaciones quietas para realizar el experimento, para así tomar muestras de los torques aplicados sobre una articulación y las posiciones a las que llegaba, se aprendería de todos los torques a la vez.
 
@@ -207,3 +207,142 @@ Por motivos de tiempo de entrenamiento, así como para aislar potenciales proble
 \end{itemize}
 
 Adicionalmente, se ha obtenido un conjunto de datos con combinaciones de distintas articulaciones, así como del brazo con las pinzas anexas para un tiempo máximo de 15 segundos y velocidad variable.
+
+El tamaño total de la base de datos sin procesar es de 5 GB. A una velocidad de generación media de 94 KB/s, es un total de quince horas y media de recogida de datos.
+
+\subsection{Red neuronal}
+Se realizaron los experimentos descritos sobre la red neuronal. Por motivos de tiempo de entrenamiento, así como de obtención de la base de datos, se ha realizado el experimento con el conjunto de datos de 0.5 segundos por movimiento (unas 50 muestras por movimiento) y ratio de velocidad 1, esto es, a velocidad máxima.
+
+Los resultados de todos los experimentos son los que se muestran en las figuras \ref{fig:resultados/torque_all}, \ref{fig:resultados/mask_all} y \ref{fig:resultados/all}. Estas gráficas se han obtenido haciendo uso del programa \textit{tensorboard}.
+
+En el eje horizontal se muestra el tiempo relativo durante el entrenamiento, mientras que en el eje vertical se observa el error. Observamos el error cometido durante la fase de entrenamiento de las redes neuronales descritas con anterioridad.
+
+Por motivos de espacio, no se muestran todas las gráficas para cada una de las configuraciones. En su lugar, se muestran las gráficas con los resultados de todas las redes y se explican los comportamientos de cada una de las redes, y por qué se comportan como se comportan en el entrenamiento.
+
+\subsubsection{Error en el torque}
+Como se observa en la figura \ref{fig:resultados/torque_loss_all}, el error de entrenamiento es muy grande para algunas configuraciones de la red. Estas configuraciones corresponden con los modelos con un nivel de dropout de 0.8. Este nivel tan alto provoca en el entrenamiento que la salida no tenga nada que ver con la salida que generaría la red de no anularse las neuronas, y ésto es lo que hace que el error de entrenamiento sea tan alto.
+
+\begin{figure}
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/torque_loss_all.png}
+		\caption{Entrenamiento}
+		\label{fig:resultados/torque_loss_all}
+	\end{subfigure}
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/val_torque_loss_all.png}
+		\caption{Validación}
+		\label{fig:resultados/val_torque_loss_all}
+	\end{subfigure}
+	\caption{Errores en el torque}
+	\label{fig:resultados/torque_all}
+\end{figure}
+
+Es la misma configuración la que en el conjunto de validación (fig. \ref{fig:resultados/val_torque_loss_all}) devuelve valores constante en torno a 0.76. Esto significa que la red está siendo infrautilizada, y no está aprendiendo. Lo mismo ocurre para la configuración de dropout igual a 0.6 y los valores de regularización L1 de 0.001 y de 1e-6. Los motivos del nivel de dropout a 0.6 son los mismos que para el nivel 0.8, mientras que el motivo por el cual la regularización L1 no funciona como se espera es que, en este caso, el tener neuronas especializadas a costa de apagar otras no funciona.
+
+El resto de redes se comportan de manera similar en cuanto a torque se refiere. Las que mejor resultado dan son las que usan un nivel de regularización L2 de 0.001, 1000 neuronas y 1 capa, y un nivel de dropout de 0.5. Las redes de 2 capas y 100 neuronas no funcionan tan bien como las de 1 y 1000, debido a que las conexiones a través del tiempo de las celdas GRU está generando un fenómeno de sobre-aprendizaje sobre la base de datos de entrenamiento. Esto significa que está aprendiendo a reproducir los patrones de ruido temporales de las señales de entrenamiento.
+
+Por otro lado, el nivel de regularización L2 de 1e-6 parece insuficiente para evitar este sobre-aprendizaje de la red. El sobre-aprendizaje se observa en que la curva de aprendizaje para el conjunto de entrenamiento sigue bajando, mientras que en el conjunto de validación, sube, lo que significa que sigue aprendiendo de la base de entrenamiento, pero lo aprendido no mejora (e incluso empeora) los resultados en datos no vistos antes.
+
+También se observa que, aunque está aprendiendo, el error es muy grande (en torno a 0.7). Hay que recordar que la salida está normalizada, por lo que tiene media 0 y desviación típica 1. Por lo que un error de estas dimensiones significaría que no está aprendiendo casi nada.
+
+En realidad, lo que está ocurriendo es que la mayoría de articulaciones (todas menos una) se mantienen quietas, por lo que el rango de torques que están aplicando es mínimos. Esto provoca que, al normalizarlos, se amplifique en gran escala el ruido de los sensores al leer el torque (que tendría que ser para algunas articulaciones prácticamente constante). El problema es que el error generado por ese ruido afecta al error total igual que las articulaciones que sí tienen un rango más grande de operación y cuya relación señal ruido es mucho menor.
+
+Este problema, una vez conocido, no debe preocuparnos, ya que las redes buscan patrones, y el ruido es la ausencia de dichos patrones, por lo que el aprendizaje no se verá afectado de manera tan negativa como parece en las gráficas.
+
+\subsubsection{Error en la máscara}
+
+\begin{figure}
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/mask_loss_all.png}
+		\caption{Entrenamiento}
+		\label{fig:resultados/mask_loss_all}
+	\end{subfigure}
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/val_mask_loss_all.png}
+		\caption{Validación}
+		\label{fig:resultados/val_mask_loss_all}
+	\end{subfigure}
+	\caption{Errores en la máscara}
+	\label{fig:resultados/mask_all}
+\end{figure}
+
+Este fenómeno de sobre-aprendizaje es especialmente notable en la salida de la máscara (fig. \ref{fig:resultados/mask_all}). En ella se observa cómo, en el conjunto de entrenamiento, el error baja hasta niveles cercanos a 0, mientras que en la validación estos errores crecen por encima de 0.5. Estos errores tan altos en la máscara se deben a que realmente no hay una relación entre la entrada y la máscara en la base de datos elegidas (1 articulación moviéndose a máxima velocidad durante 0.5 segundos), sino que la máscara depende de la precisión con la que se generaban los mensajes en el Baxter, ya que los movimientos nunca llegan a la posición destino con velocidad 0 (condición para empezar el siguiente movimiento), sino que agotan todo el tiempo en intentar llegar a la posición objetivo. Esto hace que la máscara tome valores de 50 y 51 para la mayoría de muestras, siendo así una medida independiente de la señal de entrada, y por lo tanto no la pueda aprender la red.
+
+Es por esto por lo que se decide no tener en cuenta las medidas del error que la máscara genera, y centrar toda la atención en los errores generados por el torque.
+
+\subsubsection{Error total}
+El error total (fig. \ref{fig:resultados/all}) es la suma ponderada de los errores cometidos en los torques, la máscara, la posición y la velocidad. Los dos primeros suman al error multiplicados por 1, mientras que los otros dos multiplican por 0.1. Debido a que el objetivo de la red neuronal es obtener unos torques y una máscara adecuada, se han omitido las gráficas de las otras dos fuentes de errores.
+
+\begin{figure}
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/loss_all.png}
+		\caption{Entrenamiento}
+		\label{fig:resultados/loss_all}
+	\end{subfigure}
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/val_loss_all.png}
+		\caption{Validación}
+		\label{fig:resultados/val_loss_all}
+	\end{subfigure}
+	\caption{Errores totales}
+	\label{fig:resultados/all}
+\end{figure}
+
+\subsubsection{Comparación de torques generados}
+En la figura \ref{fig:resultados/final} se muestran los errores de entrenamiento y validación para cada uno de los subconjuntos usando la técnica de k-fold. La red neuronal elegida es la dicha anteriormente: 1 capa y 1000 neuronas, valor de regularización L2 0.001, dropout 0.5, sin capa convolucional ni error L1.
+
+Debido a que se detectó que los movimientos no acababan (la razón por la que la máscara no se podía aprender, y la mayoría de secuencias tenía una longitud de 50-51 muestras), se decide incluir la velocidad inicial del movimiento, ya que, si no termina el movimiento, significa que lleva una velocidad asociada, por lo que mejoraremos el rendimiento de la red al introducir esta información que antes suponíamos nula (velocidad 0 en todas las articulaciones).
+
+Se observa que la red aprende adecuadamente a extraer los patrones de la base de datos (error decreciente con el número de iteraciones). Además, se observa que se ha conseguido disminuir el efecto del sobre-aprendizaje, ya que el error de validación apenas crece una vez alcanzado el mínimo, y que el error de entrenamiento es comparable al de validación.
+
+\begin{figure}
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/torque_final.png}
+		\caption{Entrenamiento}
+		\label{fig:resultados/torque_final}
+	\end{subfigure}
+	\begin{subfigure}{0.45\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/val_torque_final.png}
+		\caption{Validación}
+		\label{fig:resultados/val_torque_final}
+	\end{subfigure}
+	\caption{Errores en el torque}
+	\label{fig:resultados/final}
+\end{figure}
+
+En la figura \ref{fig:resultados/pred} se observan las predicciones que realiza la red. Se observa que la red es capaz de seguir la tendencia de baja frecuencia de cada una de las articulaciones. Se observa que, en articulaciones como la s0, donde el rango de operación es muy pequeño, la red ignora las perturbaciones (ruido) y sigue la tendencia general.
+
+\begin{figure}
+	\begin{subfigure}{0.3\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/pred_train.pdf}
+		\caption{Entrenamiento}
+		\label{fig:resultados/pred_train}
+	\end{subfigure}
+	\begin{subfigure}{0.3\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/pred_val.pdf}
+		\caption{Validación}
+		\label{fig:resultados/pred_val}
+	\end{subfigure}
+	\begin{subfigure}{0.3\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/resultados/pred_test.pdf}
+		\caption{Test}
+		\label{fig:resultados/pred_test}
+	\end{subfigure}
+	\caption{Errores en el torque}
+	\label{fig:resultados/pred}
+\end{figure}
+
+En las articulaciones donde el rango es mayor, esto también es cierto. Además, en estas últimas, se observa que las saltos grandes no los sigue. Estos cambios bruscos de torque se corresponden con la aportación que hace el controlador realimentado, y depende de una señal externa, y por lo tanto, incorrelada con el sistema que se pretende controlar. Es por esto por lo que la red no es capaz de aprender dichos cambios.
+
+

@@ -9,7 +9,7 @@ La versión usada para trabajar con el robot Baxter \cite{baxter} ha sido \textt
 \subsection{Arquitectura}
 La arquitectura de \ros sigue un modelo distribuido, donde cada nodo realiza una tarea y los nodos pueden comunicarse entre sí. Esta comunicación lo hace mediante paso de mensajes.
 \subsubsection{Nodos}
-Los nodos son los programas que realizan las tareas, ejecutables que utilizan \ros para comunicarse con otros nodos. Para programarlos se usan las librerías \textit{roscpp} (para c++) o \textit{rospy} (para Python). En el presente trabajo se utiliza la implementación en Python (por motivos de compatibilidad con la interfaz de programación de aplicaciones (API) de Baxter, así como con las librerías \textit{tensorflow} \cite{tensorflow} y \textit{keras} \cite{keras} explicadas más adelante).
+Los nodos son los programas que realizan las tareas, ejecutables que utilizan \ros para comunicarse con otros nodos. Para programarlos se usan las librerías \textit{roscpp} (para c++) o \textit{rospy} (para Python \cite{python}). En el presente trabajo se utiliza la implementación en Python (por motivos de compatibilidad con la interfaz de programación de aplicaciones (API) de Baxter, así como con las librerías \textit{tensorflow} \cite{tensorflow} y \textit{keras} \cite{keras} explicadas más adelante).
 
 \subsubsection{Temas}
 Los temas son los canales de comunicación que utilizan los nodos para comunicarse con otros nodos. Son los ``puertos'' que cada tema pone hace público para permitir la comunicación con otros nodos.
@@ -429,7 +429,7 @@ Tienen la capacidad de aprender de sistemas cuyo comportamiento cambia con el ti
 \paragraph{Redes recurrentes}
 Es el tipo de red recursiva más básica. Consiste en un conjunto de neuronas (normalmente agrupados en una capa) cuya salida no depende solamente de las entradas provenientes de capas anteriores, sino que también dependen de las salidas de las neuronas en esa misma capa. De esta manera, el estado de la red cambia conforme cambian las salidas de esta capa.
 \paragraph{LSTM}
-Las redes de memoria a corto y largo plazo (Long Short Term Memory) \cite{hochreiter1997long}\cite{colah} hacen uso de una unidad especial, que consiste en un conjunto de puertas que permiten el flujo de información a través de la neurona. En concreto, cuenta con 3 puertas:
+Las redes de memoria a corto y largo plazo (Long Short Term Memory) \cite{hochreiter1997long}\cite{colah} hacen uso de una unidad especial, que consiste en un conjunto de puertas que permiten el flujo de información a través de la neurona. En concreto, cuenta con 3 puertas (fig. \ref{fig:metodos/lstm}):
 
 \begin{itemize}
 	\item Puerta de entrada. Su valor varía de 0 a 1 y se multiplica al valor de la entrada de la activación.
@@ -456,6 +456,7 @@ La salida es una interpolación lineal del estado anterior y el nuevo estado pro
 		\caption{Celda GRU. [Fuente: \cite{chung2014empirical}]}
 		\label{fig:metodos/gru}
 	\end{subfigure}
+	\caption{Celdas usadas en redes recursivas}
 \end{figure}
 \paragraph{Propagación hacia atrás de errores en el tiempo}
 El algoritmo de optimización de parámetros en el tiempo es el mismo usado en las redes hacia delante (propagación hacia atrás de errores), con la peculiaridad de que la red se desenrolla en el tiempo. Esto significa, que las neuronas realimentadas se interconectan entre sí en cada instante temporal (desenrollado). Las pérdidas se calculan de la misma manera, calculando el error en cada instante temporal (si es que se tiene una salida en cada instante) y aplicando el algoritmo de propagación hacia atrás sobre cada neurona.
@@ -463,7 +464,7 @@ El algoritmo de optimización de parámetros en el tiempo es el mismo usado en l
 Esta es la principal razón por la que surgieron las celdas LSTM y GRU, ya que, haciendo uso nada más de las redes recurrentes, se tiene el problema de desvanecimiento y explotación de los pesos de la red \cite{bengio1994learning}. Este fenómeno surge cuando la red se desdobla un número lo suficientemente grande como para que, al propagar hacia atrás el error, debido a la gran dimensionalidad de la red, el error llegue muy reducido (desvanecimiento) o muy amplificado (explotación), impidiendo que, alcanzado este punto, la red aprenda.
 
 \subsection{Regularización}
-Las redes neuronales son sistema capaces de aprender a extraer patrones de los datos que se le ofrecen. Por lo tanto, se podría pensar que una red lo suficientemente grande es capaz de extraer cualquier patrón que haya en los datos. Esto es ideal si contamos con una base de datos infinita, ya que cualquier discrepancia entre muestras se tomaría como ruido y la red no aprendería de éste. El problema es que no se puede aprender de una base de datos infinita (el tiempo de cálculo sería igualmente infinito), y no se puede obtener dicha base de datos.
+Las redes neuronales son sistemas capaces de aprender a extraer patrones de los datos que se le ofrecen. Por lo tanto, se podría pensar que una red lo suficientemente grande es capaz de extraer cualquier patrón que haya en los datos. Esto es ideal si contamos con una base de datos infinita, ya que cualquier discrepancia entre muestras se tomaría como ruido y la red no aprendería de éste. El problema es que no se puede aprender de una base de datos infinita (el tiempo de cálculo sería igualmente infinito), y no se puede obtener dicha base de datos.
 
 Una vez asumido que no se puede disponer de esta base de datos, nos encontramos con el problema de que, en una base finita, podemos no tener representados todos los casos de estudio que nos interesan, esto es, que la base de datos no sea representativa de la realidad de la que se pretende aprender. En este caso, lo mejor que puede hacer la red es aprender de dichas muestras, y sería incapaz de generalizar para el conjunto no visto (o no visto lo suficiente).
 
@@ -482,7 +483,7 @@ La regularización L1, al igual que la L2 \cite{ng2004feature}, consiste en la a
 \subsubsection{Dropout}
 Dropout \cite{gal2015theoretically} es una técnica de regularización que se basa en el hecho de que, la media ponderada de un conjunto de redes neuronales, cada una especializada en un subconjunto de datos, genera unos resultados mejores que cada una de las redes individualmente. Esto se debe a que cada red puede haber adquirido un error distinto, pero al juntarlas, este error disminuye.
 
-El problema es que entrenar redes neuronales es un proceso computacionalmente costoso. Es por esto por lo que esta técnica propone realizar dicha media en la fase de entrenamiento. Para ello, en la fase de propagación hacia adelante, anula cada neurona con una probabilidad $p$, de modo que la salida va a depender de una subconjunto de las neuronas de la red (entre las cuales pueden estar o no las neuronas especializadas). De esta manera, se consigue que las dependencias con las neuronas más especializadas se reparta sobre varias neuronas, de modo que se reduce el error, al depender de varias neuronas, cada una con su versión reducida del error.
+El problema es que entrenar redes neuronales es un proceso computacionalmente costoso. Es por esto por lo que esta técnica propone realizar dicha media en la fase de entrenamiento. Para ello, en la fase de propagación hacia adelante, anula cada neurona con una probabilidad $p$, de modo que la salida va a depender de un subconjunto de las neuronas de la red (entre las cuales pueden estar o no las neuronas especializadas). De esta manera, se consigue que las dependencias con las neuronas más especializadas se reparta sobre varias neuronas, de modo que se reduce el error, al depender de varias neuronas, cada una con su versión reducida del error.
 \subsection{Aprendizaje profundo}
 Aprendizaje profundo (Deep Learning) \cite{schmidhuber2015deep}\cite{udacitydeeplearning} es un conjunto de técnicas usadas sobre las redes neuronales que le permiten alcanzar resultados nunca antes conseguidos en el campo del aprendizaje automático.
 
@@ -490,7 +491,7 @@ En un sentido amplio, el aprendizaje profundo consiste en una red neuronal con u
 
 Este error se disminuye haciendo uso de la técnica de regularización dropout, utilizado en conjunción con el error L2 y/o el error L1.
 
-Este tipo de redes son realmente potentes cuando se entrenan con grande bases de datos de entrenamiento. El problema de estas bases de datos, es que para realizar el algoritmo de propagación hacia atrás de errores, es necesario calcular el error de cada neurona, y para ello hay que calcular la derivada y la aportación de cada neurona al error. Esto supone una gran cantidad de recursos (tanto de procesamiento, realizado en GPU, como de memoria) que en ocasiones no se puede abarcar. Para solucionar este problema, se utilizan algoritmos de propagación hacia atrás de errores basados en la división de la base de entrenamiento en grupos (descenso en gradiente estocástico).
+Este tipo de redes son realmente potentes cuando se entrenan con grandes bases de datos de entrenamiento. El problema de estas bases de datos, es que para realizar el algoritmo de propagación hacia atrás de errores, es necesario calcular el error de cada neurona, y para ello hay que calcular la derivada y la aportación de cada neurona al error. Esto supone una gran cantidad de recursos (tanto de procesamiento, realizado en GPU, como de memoria) que en ocasiones no se puede abarcar. Para solucionar este problema, se utilizan algoritmos de propagación hacia atrás de errores basados en la división de la base de entrenamiento en grupos (descenso en gradiente estocástico).
 
 Como se ha comentado, hay que calcular las derivadas para conocer la aportación de cada neurona al error. Esto supone un gran coste computacional, por lo que se utilizan funciones no lineales con derivadas fáciles de calcular, como las activaciones relu o la sigmoide ``dura''.
 
