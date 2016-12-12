@@ -606,6 +606,22 @@ El controlador D consiste en cambiar la señal de control proporcionalmente a la
 	\label{fig:metodos/pid_control}
 	\activatequoting
 \end{figure}
+
+Este controlador tiene la dificultad añadida de encontrar los parámetro que optimizan el tiempo que se tarda en alcanzar el estado deseado. Es por esto, por lo que hay técnicas como la de ciclo límite de Ziegler y Nichols \cite{valerio2006tuning}.
+
+\paragraph{Método de ciclo límite}
+Es un método empírico para el cálculo de las constantes del PID. Se basa en que los sistemas se pueden caracterizar en función de la constante proporcional mínima que genera una oscilación en el sistema mantenida en el tiempo $K_u$, así como con el periodo de oscilación $T_u$.
+
+El método consiste en aumentar la constante proporcional (las otra se dejan a 0) hasta que se observe este comportamiento oscilatorio. Se anota la constante y el periodo de oscilación. A partir de estos valores, obtendremos las constantes según la tabla \ref{tab:metodos/pid}.
+\begin{table}[]
+	\centering
+	\caption{Cálculo de constantes con el método de ciclo límite de Ziegler y Nichols}
+	\label{tab:metodos/pid}
+	\begin{tabular}{c|ccc}
+		Tipo de control & $T_p$     & $T_i$    & $T_d$      \\ \hline
+		PID             & $0.6 K_u$ & $0.5T_u$ & $0.125T_u$
+	\end{tabular}
+\end{table}
 \paragraph{Ejemplo}
 Un ejemplo de la aportación que hace cada uno de estos controladores es el de controlar la posición de un brazo robótico que opera en el plano vertical. Dada una posición deseada para cada articulación y una posición real, se obtiene una señal de error, que alimenta al controlador.
 
