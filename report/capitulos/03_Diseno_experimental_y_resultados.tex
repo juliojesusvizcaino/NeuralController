@@ -86,43 +86,6 @@ El controlador del Baxter tiene una estructura como la mostrada en la figura \re
 \item La aplicación genera una nueva posición que es recibido por los sensores y usado para la realimentación.
 \end{enumerate}
 
-\tikzstyle{block} = [draw, fill=blue!20, rectangle, 
-    minimum height=3em, minimum width=6em]
-\tikzstyle{sum} = [draw, fill=blue!20, circle, node distance=1cm]
-\tikzstyle{input} = [coordinate]
-\tikzstyle{output} = [coordinate]
-\tikzstyle{pinstyle} = [pin edge={to-,thin,black}]
-\begin{figure}[]
-	\centering
-	\deactivatequoting
-	\begin{tikzpicture}[auto, node distance=2cm,>=latex']
-	    % We start by placing the blocks
-	    \node [input, name=input] {};
-	    \node [sum, right of=input] (sum) {};
-	    \node [block, right of=sum] (controller) {Controller};
-	    \node [sum, right of=controller] (sum2) {};
-	    \node [block, right of=sum2, pin={[pinstyle]above:Disturbances},
-	          node distance=3cm] (system) {System};
-	    % We draw an edge between the controller and system block to 
-	    % calculate the coordinate u. We need it to place the measurement block. 
-	    \draw [->] (sum2) -- node[name=u] {$u$} (system);
-	    \node [output, right of=system] (output) {};
-	    \node [block, below of=u] (measurements) {Measurements};
-	
-	    % Once the nodes are placed, connecting them is easy. 
-	    \draw [draw,->] (input) -- node {$r$} (sum);
-	    \draw [->] (sum) -- node {$e$} (controller);
- 	    \draw [->] (controller) -- node {$e$} (sum2);
-	    \draw [->] (system) -- node [name=y] {$y$}(output);
-	    \draw [->] (y) |- (measurements);
-	    \draw [->] (measurements) -| node[pos=0.99] {$-$} 
-	        node [near end] {$y_m$} (sum);
-	\end{tikzpicture}
-	\caption{Sistema de control de Baxter}
-	\label{fig:resultados/feedforward_controller}
-	\activatequoting
-\end{figure}
-
 El controlador realimentado no es más que un sistema (lineal o no) que a ciertas entradas genera ciertas salidas (en función de su historia o no). El controlador anticipativo igualmente es un sistema que tiene en cuenta el modelo dinámico del robot, y por lo tanto los dos sistemas son reproducibles por una red neuronal. Por último, tenemos la realimentación, y es en este aspecto, donde la red neuronal tendrá que aprender a producir estimaciones de la salida provocada (posiciones de las articulaciones) al aplicar los torques.
 
 Por lo tanto, la viabilidad de nuestro controlador depende de la capacidad de la red para generar dicha estimación de la realimentación.

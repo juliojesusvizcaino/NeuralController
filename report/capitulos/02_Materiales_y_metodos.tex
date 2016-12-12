@@ -34,7 +34,7 @@ Adicionalmente, la cámara tiene habilitado un servicio para reiniciar la cámar
 
 \subsection{\texttt{rosbag}}
 \label{subsec:metodos/rosbag}
-\texttt{rosbag} es una herramienta para grabar el paso de mensajes realizados sobre los temas que se le ofrecen como parámetros. Tiene la capacidad de grabar información adicional a los mensajes, como la marca temporal (momento en el que el mensaje es registrado) y de secuencia (número de mensaje en una secuencia) que cada mensaje tiene asociada. Esto es útil para sincronizar mensajes generados por otro sistema y recibidos por tcp/ip con los mensajes generados en el propio ordenador.
+\texttt{rosbag} \cite{rosbag} es una herramienta para grabar el paso de mensajes realizados sobre los temas que se le ofrecen como parámetros. Tiene la capacidad de grabar información adicional a los mensajes, como la marca temporal (momento en el que el mensaje es registrado) y de secuencia (número de mensaje en una secuencia) que cada mensaje tiene asociada. Esto es útil para sincronizar mensajes generados por otro sistema y recibidos por tcp/ip con los mensajes generados en el propio ordenador.
 
 
 \section{Baxter}
@@ -297,7 +297,7 @@ La versión del simulador en la que está implementada es la 2.2, mientras que l
 \section{Redes Neuronales}
 Una red neuronal artificial \cite{abu2012learning} \cite{hinton} \cite{andrewng} es un conjunto de algoritmos de aprendizaje automático capaces de extraer modelos a partir de un conjunto de datos de aprendizaje. De esta manera, estos sistemas son capaces de emular la fuente generadora de datos y producir salidas coherentes a partir de entradas no vistas con anterioridad.
 \subsection{Topología}
-En función de la topología de la red, se contemplan dos tipos fundamentales:
+En función de la topología de la red, se contemplan dos tipos fundamentales: las redes hacia adelante, y las redes recursivas. A continuación se habla de las redes hacia delante, mientras que las redes recursivas se analizan en un apartado más adelante.
 \subsubsection{Redes hacia adelante}
 Las conexiones entre las neuronas es de un solo sentido, de modo que no se forman bucles entre ninguna de las neuronas (figura \ref{fig:metodos/feedforward}). Las líneas que conectan las ``neuronas'' son pesos, y la interconexión entre una capa y otra se puede representar como una matriz de mxn, donde m es el número de neuronas de la capa anterior, y n es el numero de neuronas de la capa siguiente. De este modo, la entrada de cada capa no es sino la combinación lineal de las salidas de las capas anteriores.
 
@@ -334,8 +334,8 @@ Si las relaciones entre las capas sólo fueran combinaciones lineales, la red ne
 		\caption{Red multicapa}
 		\label{fig:metodos/feedforward2}
 	\end{subfigure}
-	\label{fig:metodos/feedforward}
 	\caption{Redes neuronales de propagación hacia adelante}
+	\label{fig:metodos/feedforward}
 \end{figure}
 
 \paragraph{Activaciones}
@@ -364,26 +364,26 @@ Su fórmula es $H(p, q) = -\sum_{x}{p(x)\log q(x)}$ y es usada en tareas de clas
 	\begin{subfigure}[b]{0.5\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/metodos/sigmoid.pdf}
-		\label{fig:metodos/sigmoid}
 		\caption{Función sigmoidea}
+		\label{fig:metodos/sigmoid}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.5\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/metodos/hard-sigmoid.pdf}
-		\label{fig:metodos/hard-sigmoid}
 		\caption{Función sigmoidea ``dura''}
+		\label{fig:metodos/hard-sigmoid}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.5\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/metodos/sigmoid.pdf}
-		\label{fig:metodos/tanh}
 		\caption{Tangente hiperbólica}
+		\label{fig:metodos/tanh}
 	\end{subfigure}
 	\begin{subfigure}[b]{0.5\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/metodos/relu.pdf}
-		\label{fig:metodos/relu}
 		\caption{Rectificador lineal}
+		\label{fig:metodos/relu}
 	\end{subfigure}
 	\caption{Activaciones}
 	\label{fig:metodos/activations}
@@ -407,7 +407,7 @@ El algoritmo de actualización de los pesos usado es el de propagación hacia at
 Hay distintos tipos de algoritmos \cite{gradient_descent} que implementan la propagación hacia atrás de errores.
 
 \subparagraph{Descenso en gradiente}
-Consiste en el algoritmo más sencillo. Dada la relación entre el error total y el generado en por cada peso, modifica el peso de manera proporcional a dicho error. Esto, visto en el espacio de los pesos con respecto al error total, significa descender por la curva en la dirección y sentido de mayor pendiente (de ahí el nombre).
+Consiste en el algoritmo más sencillo. Dada la relación entre el error total y el generado por cada peso, modifica el peso de manera proporcional a dicho error. Esto, visto en el espacio de los pesos con respecto al error total, significa descender por la curva en la dirección y sentido de mayor pendiente (de ahí el nombre).
 \subparagraph{Descenso en gradiente estocástico}
 Es como el anterior, pero, en vez de calcular el error para todo el conjunto de datos de entrenamiento, se calcula el error en pequeños grupos y se aplica el algoritmo. Esto produce que el descenso no se produzca en la dirección de máxima pendiente del conjunto, sino del subconjunto. El método funciona porque la media de dichos descensos aproxima el descenso total. Al caso en el que el subconjunto es una sola muestra se le llama aprendizaje online.
 \subparagraph{Momentum}
@@ -416,9 +416,16 @@ Es una modificación al descenso en gradiente, en el que la dirección de descen
 La estimación adaptativa del momento hace uso de la técnica del momento, y adapta la cantidad de descenso en gradiente para cada uno de los parámetros a optimizar, de modo que, los parámetros cuyo rango de operación es más pequeño perciben cambios más pequeños en la actualización de su valor.
 
 \subsubsection{Redes recursivas}
-Las redes recursivas \cite{karpathy} difieren de las redes hacia delante en que las neuronas pueden conectarse entre sí hacia atrás (o consigo mismas), generando en la red una realimentación entre nodos que provoca que la salida de la red no dependa sólo de la entrada, sino del estado de la misma (que varía en función de su historia).
+\label{subsubsec:metodos/recursivas}
+Las redes recursivas \cite{karpathy} son el otro tipo de redes en función de la topología de la red, y difieren de las redes hacia delante en que las neuronas pueden conectarse entre sí hacia atrás (o consigo mismas), generando en la red una realimentación entre nodos que provoca que la salida de la red no dependa sólo de la entrada, sino del estado de la misma (que varía en función de su historia) (fig. \ref{fig:metodos/rnn}).
 
 Tienen la capacidad de aprender de sistemas cuyo comportamiento cambia con el tiempo.
+\begin{figure}
+	\centering
+	\includegraphics[height=3cm]{imagenes/metodos/rnn.png}
+	\caption{Red neuronal recurrente [Fuente: \cite{colah}]}
+	\label{fig:metodos/rnn}
+\end{figure}
 \paragraph{Redes recurrentes}
 Es el tipo de red recursiva más básica. Consiste en un conjunto de neuronas (normalmente agrupados en una capa) cuya salida no depende solamente de las entradas provenientes de capas anteriores, sino que también dependen de las salidas de las neuronas en esa misma capa. De esta manera, el estado de la red cambia conforme cambian las salidas de esta capa.
 \paragraph{LSTM}
@@ -432,9 +439,24 @@ Las redes de memoria a corto y largo plazo (Long Short Term Memory) \cite{hochre
 
 Todas estas puertas son activaciones sigmoideas que se activan con las entradas de la celda y con el estado de la misma.
 \paragraph{GRU}
-Las celdas GRU (Gated Recurrent Unit) \cite{chung2014empirical} son, al igual que las LSTM, celdas que hacen uso de puertas. Son más sencillas que las anteriores, y requieren menos cómputo, por lo que son más rápidas de entrenar. Cuentan con dos puertas en vez de tres: reinicio y actualización.
+Las celdas GRU (Gated Recurrent Unit) \cite{chung2014empirical} son, al igual que las LSTM, celdas que hacen uso de puertas. Son más sencillas que las anteriores, y requieren menos cómputo, por lo que son más rápidas de entrenar. Cuentan con dos puertas en vez de tres: reinicio y actualización (fig. \ref{fig:metodos/gru})
 
 La salida es una interpolación lineal del estado anterior y el nuevo estado propuesto, el cual se calcula como una combinación de la entrada y el estado anterior (multiplicado por la puerta de reinicio). La puerta de actualización se calcula a partir del estado anterior y la entrada, al igual que la puerta de reinicio.
+
+\begin{figure}
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/metodos/lstm.png}
+		\caption{Celda LSTM [Fuente: \cite{chung2014empirical}]}
+		\label{fig:metodos/lstm}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.5\textwidth}
+		\centering
+		\includegraphics[width=\linewidth]{imagenes/metodos/gru.png}
+		\caption{Celda GRU. [Fuente: \cite{chung2014empirical}]}
+		\label{fig:metodos/gru}
+	\end{subfigure}
+\end{figure}
 \paragraph{Propagación hacia atrás de errores en el tiempo}
 El algoritmo de optimización de parámetros en el tiempo es el mismo usado en las redes hacia delante (propagación hacia atrás de errores), con la peculiaridad de que la red se desenrolla en el tiempo. Esto significa, que las neuronas realimentadas se interconectan entre sí en cada instante temporal (desenrollado). Las pérdidas se calculan de la misma manera, calculando el error en cada instante temporal (si es que se tiene una salida en cada instante) y aplicando el algoritmo de propagación hacia atrás sobre cada neurona.
 
@@ -499,6 +521,179 @@ Se usa diseñando la red en el entorno de un modelo. Tiene dos manera de crearla
 
 Una vez generado el modelo, sólo hace falta compilarlo (diciéndole qué algoritmo queremos usar para la fase de optimización, así como el tipo de error usado) y ejecutar la orden \texttt{fit}, que realiza una iteración sobre todo el conjunto de entrenamiento que le hayamos dado. Esta orden permite especificar el tamaño del grupo usado para realizar cada paso en la optimización (descenso en gradiente estocástico).
 \section{Controladores}
+Los controladores \cite{kulakowski2007dynamic}\cite{brosilow2002techniques}\cite{tolu2013adaptive}\cite{tolu2012bio} son sistemas que modifican un estado del que no se tiene directamente control en función de una señal de entrada. Esta modificación la hacen a través de señales que se envían a los actuadores, que sí que tienen la capacidad de cambiar el estado.
+
+A la señal que nos indica el estado deseado se le llama señal de referencia, mientras que a la generada por el controlador se le llama de control. A la 
+
+Ejemplos de controladores son los usados en regulación de la temperatura, donde no se tiene control sobre la misma directamente, sino que a lo que se tiene acceso es al voltaje aplicado a la fuente generadora de calor. Otro ejemplo es el control de velocidad de un motor. El motor es el actuador, y se le puede aplicar más o menos voltaje, en función del cual aplica el motor va más o menos rápido. A este motor se le anexiona una rueda, con lo que el motor ahora se encuentra con una fuerza que se opone a la dirección del movimiento, provocando que la velocidad del motor baje a un mismo voltaje.
+
+Es a este tipo de problemas a los que los controladores se enfrentan y a los que deben ofrecer una solución.
+
 \subsection{Error distal}
+El error distal hace referencia a la diferencia entre el estado deseado y el estado actual. El nombre hace referencia a que no es un error que dependa directamente del controlador.
 \subsection{Control realimentado}
-\subsection{Control Anticipativo}
+Un sistema de control se dice que es realimentado si la señal de control que ofrece depende del estado actual. La salida del sistema será función del estado deseado y del estado actual. En concreto, este tipo de sistemas son función del error distal, y no tienen en cuenta los valores concretos de los estados deseados y actuales. En la figura \ref{fig:metodos/feedback_control} se puede observar el diagrama de bloques de este tipo de sistemas.
+
+Un problema al que se hace frente en el diseño de controladores realimentados (como en cualquier sistema que lo sea), es la estabilidad del sistema. Es por esto por lo que se hay que estudiar que se cumpla dicha estabilidad en el diseño y uso de este tipo de sistemas.
+
+\begin{figure}[]
+	\centering
+	\deactivatequoting
+	\begin{tikzpicture}[auto, node distance=2cm,>=latex']
+	% We start by placing the blocks
+	\node [input, name=input] {};
+	\node [sum, right of=input] (sum) {};
+	\node [block, right of=sum] (controller) {Controlador\\realimentado};
+	\node [block, right of=controller, node distance=3cm] (actuador) {Actuador};
+	\node [block, right of=actuador, node distance=3cm] (system) {Sistema};
+	% We draw an edge between the controller and system block to 
+	% calculate the coordinate u. We need it to place the measurement block. 
+	\node [output, right of=system] (output) {};
+	\node [block, below of=actuador] (measurements) {Medidas};
+	\node [block2, above of=system] (perturbacion) {Perturbación};
+	
+	% Once the nodes are placed, connecting them is easy. 
+	\draw [draw,->] (input) -- node[name=inp] {$r(t)$} (sum);
+	\draw [->] (sum) -- node {$e(t)$} (controller);
+	\draw [->] (controller) -- node[name=c] {$c(t)$} (actuador);
+	\draw [->] (actuador) -- node[name=u] {$u(t)$} (system);
+	\draw [->] (system) -- node [name=y] {$y(t)$}(output);
+	\draw [->] (y) |- (measurements);
+	\draw [->] (perturbacion) -- (system);
+	\draw [->] (measurements) -| node[pos=0.95] {$-$}
+	node [near end] {$y_m(t)$} (sum);
+	\end{tikzpicture}
+	\caption{Sistema de control realimentado}
+	\label{fig:metodos/feedback_control}
+	\activatequoting
+\end{figure}
+
+\subsubsection{Controlador PID}
+El controlador PID \cite{rivera1986internal} es un controlador lineal realimentado ampliamente usado en sistemas de control (fig. \ref{fig:metodos/pid_control}).
+
+Se caracteriza por ser la suma de tres componentes de la señal de entrada: una parte proporcional a esta, una parte de la derivada, y otra de la integral. De este modo, tenemos tres controladores en uno. El sistema total es la suma ponderada de cada una de estos controladores.
+
+
+\paragraph{Controlador P}
+Es el controlador más sencillo. Consiste en aumentar la señal de control conforme aumenta la señal de error, e igualmente, disminuirla cuando la señal de error lo hace. De esta manera, aproximamos el estado actual al deseado y disminuimos el error.
+
+\paragraph{Controlador I}
+Este controlador hace uso de la parte integral de la señal. Para ello, se tiene en cuenta la historia del sistema y se realiza una acumulación ponderada de la historia del mismo. Este controlador sirve para ajustar el error constante que puede haber entre el estado deseado y el actual dada la señal de control generada por el controlador P, una vez que este se estabiliza.
+
+\paragraph{Controlador D}
+El controlador D consiste en cambiar la señal de control proporcionalmente a la derivada de la señal de error. De esta manera, si el controlador P está acercando rápidamente el estado actual al deseado (disminuyendo así el error), este controlador generará una señal de sentido contrario a la generada por el controlador P, con el fin de disminuir las oscilaciones producidas por este cuando alcanza la posición deseada a gran velocidad. 
+
+\begin{figure}[]
+	\centering
+	\deactivatequoting
+	\begin{tikzpicture}[auto, node distance=2cm,>=latex']
+	% We start by placing the blocks
+	\node [input, name=input] {};
+	\node [block, right of=input] (controllerp) {Controlador P};
+	\node [block, above of=controllerp] (controllerd) {Controlador D};
+	\node [block, below of=controllerp] (controlleri) {Controlador I};
+	\node [output, right of=controllerp] (output) {};
+	
+	% Once the nodes are placed, connecting them is easy. 
+	\draw [draw,->] (input) -- node[name=inp] {$e(t)$} (controllerp);
+	\draw [->] (inp) |- node[name=c] {} (controllerd);
+	\draw [->] (inp) |- node[name=c] {} (controlleri);
+	\draw [->] (controllerp) -- node [name=y] {$c(t)$}(output);
+	\draw [->] (controllerd) -| (y);
+	\draw [->] (controlleri) -| (y);
+	\end{tikzpicture}
+	\caption{Controlador PID}
+	\label{fig:metodos/pid_control}
+	\activatequoting
+\end{figure}
+\paragraph{Ejemplo}
+Un ejemplo de la aportación que hace cada uno de estos controladores es el de controlar la posición de un brazo robótico que opera en el plano vertical. Dada una posición deseada para cada articulación y una posición real, se obtiene una señal de error, que alimenta al controlador.
+
+Queremos que cuanto más lejos se encuentren cada una de las articulaciones con respecto a su posición objetivo, la fuerza sea mayor (control P).
+
+También tenemos que tener en cuenta que, una vez alcanzada la posición objetivo, las articulaciones lo harán con cierta inercia, y es aquí donde el controlador D se encarga de disminuir este efecto, ejerciendo una fuerza en sentido contrario a la velocidad en la dirección del movimiento, ya que los cambios realizados en esta dirección minimiza el error, y por tanto tienen derivada negativa.
+
+Para terminar, habrá articulaciones afectadas por la gravedad (operan en el eje vertical), por lo que, una vez estabilizado el sistema (controlador D valdrá 0), el controlador P no generará la fuerza necesaria para combatir la gravedad, que es una fuerza constante que impide el movimiento. El controlador I se encarga de ajustar esta señal, teniendo en cuenta el error en intervalos de tiempo grandes (cuando el robot ha alcanzado el equilibrio y se encuentra parado).
+
+
+\subsection{Control anticipativo}
+Este tipo de control (mostrado en la figura \ref{fig:metodos/feedforward_control}) se basa en el conocimiento del sistema que se quiere controlar. No es un sistema de lazo cerrado, y por lo tanto no tiene problemas de estabilidad.
+
+Se trata de sistemas no lineales que describen el comportamiento del sistema que describen. Este comportamiento se basa en observaciones que se han hecho del mismo, y por lo tanto se requiere conocer la respuesta de éste a los impulsos que generan los actuadores.
+
+Estos sistemas no reciben una señal del estado del sistema que describen, pero sí que reciben las perturbaciones que afectan al sistema, por lo que podrá anticiparse a la respuesta que tiene este a estos estímulos. Esto le permite actuar antes de que el problema ocurra, y con ello, obtener un control más rápido que el logrado uno realimentado.
+
+Un ejemplo es el control de la posición de un motor en función del voltaje. Se puede realizar una asociación a priori entre voltajes a la entrada y posiciones a las que se llega. Si el modelo es lo suficientemente preciso, en ausencia de una fuente externa no esperada que interfiera en los resultados, se alcanzará la posición objetivo.
+
+El inconveniente de este sistema es que la eficacia del mismo depende de lo bien que se caracterice, por lo que un análisis en profundidad del sistema es necesario (lo cual suele ser complicado). Otro inconveniente es que no obtiene una medida de lo bien o lo mal que lo está haciendo, por lo que, en presencia de mecanismos externos al sistema, el controlador no funcionará de la manera esperada.
+
+\begin{figure}[]
+	\centering
+	\deactivatequoting
+	\begin{tikzpicture}[auto, node distance=2cm,>=latex']
+	% We start by placing the blocks
+	\node [input, name=input] {};
+	\node [block, right of=input] (controller) {Controlador\\anticipativo};
+	\node [block, right of=controller, node distance=3cm] (actuador) {Actuador};
+	\node [block, right of=actuador, node distance=3cm] (system) {Sistema};
+	% We draw an edge between the controller and system block to 
+	% calculate the coordinate u. We need it to place the measurement block. 
+	\node [output, right of=system] (output) {};
+	\node [block2, above of=system] (perturbacion) {Perturbación};
+	
+	% Once the nodes are placed, connecting them is easy. 
+	\draw [draw,->] (input) -- node[name=inp] {$r(t)$} (controller);
+	\draw [->] (controller) -- node[name=c] {$c(t)$} (actuador);
+	\draw [->] (actuador) -- node[name=u] {$u(t)$} (system);
+	\draw [->] (system) -- node [name=y] {$y(t)$}(output);
+	\draw [->] (perturbacion) -- (system);
+	\draw [->] (perturbacion) -| (controller);
+	\end{tikzpicture}
+	\caption{Sistema de control anticipativo}
+	\label{fig:metodos/feedforward_control}
+	\activatequoting
+\end{figure}
+\subsection{Control mixto}
+Un modelo mixto que combine ambos tipos de controladores (figura \ref{fig:metodos/mix_control}) obtiene los beneficios de usar cada uno de ellos por separado. 
+
+Por un lado, con el controlador anticipativo, se podrá actuar más rápido ante las perturbaciones que afectan al sistema. Por otro, se podrá corregir el ruido y los agentes externos no analizados (o no analizables) y añadidos al control anticipativo.
+
+El funcionamiento es el siguiente. En primer lugar, actua el controlador realimentado (normalmente un PID), calculando la señal de control necesaria para alcanzar la posición objetivo. Por otro lado, el controlador anticipativo obtiene una muestra de la perturbación que afecta al sistema, y genera una señal que rectifica a la generada por el controlador realimentado. El resultado de esta señal se alimenta al actuador, que modifica el sistema. Esto se realiza en cada instante de tiempo, hasta alcanzar el estado deseado.
+
+\begin{figure}[]
+	\centering
+	\deactivatequoting
+	\begin{tikzpicture}[auto, node distance=2cm,>=latex']
+	% We start by placing the blocks
+	\node [input, name=input] {};
+	\node [sum, right of=input] (sum) {};
+	\node [block, right of=sum] (controller) {Controlador\\realimentado};
+	\node [sum, right of=controller, node distance=2cm] (sumaaa) {};
+	\node [block, right of=sumaaa] (actuador) {Actuador};
+	\node [block, right of=actuador, node distance=3cm] (system) {Sistema};
+	% We draw an edge between the controller and system block to 
+	% calculate the coordinate u. We need it to place the measurement block. 
+	\node [output, right of=system] (output) {};
+	\node [block, below of=sumaaa] (measurements) {Medidas};
+	\node [block2, above of=system] (perturbacion) {Perturbación};
+	\node [block, above of=sumaaa] (control2) {Controlador\\anticipativo};
+	
+	% Once the nodes are placed, connecting them is easy. 
+	\draw [draw,->] (input) -- node[name=inp] {$r(t)$} (sum);
+	\draw [draw,->] (inp) |- node {} (control2);
+	\draw [->] (sum) -- node {$e(t)$} (controller);
+	\draw [->] (controller) -- node {} (sumaaa);
+	\draw [->] (sumaaa) -- node[name=c] {$c(t)$} (actuador);
+	\draw [->] (actuador) -- node[name=u] {$u(t)$} (system);
+	\draw [->] (system) -- node [name=y] {$y(t)$}(output);
+	\draw [->] (y) |- (measurements);
+	\draw [->] (perturbacion) -- (system);
+	\draw [->] (perturbacion) -| (control2);
+	\draw [->] (control2) -- (sumaaa);
+	\draw [->] (measurements) -| node[pos=0.95] {$-$}
+	node [near end] {$y_m(t)$} (sum);
+	\end{tikzpicture}
+	\caption{Sistema de control mixto}
+	\label{fig:metodos/mix_control}
+	\activatequoting
+\end{figure}

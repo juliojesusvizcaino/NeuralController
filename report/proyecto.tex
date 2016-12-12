@@ -181,12 +181,18 @@ pdfproducer = {pdflatex}
 }
 \makeatother
 
+\tikzstyle{block} = [draw, fill=white!20, rectangle, 
+minimum height=3em, minimum width=6em, align=center]
+\tikzstyle{block2} = [draw, fill=white!20, rectangle, 
+minimum height=2em, minimum width=4em]
+\tikzstyle{sum} = [draw, fill=white!20, circle, node distance=1cm]
+\tikzstyle{input} = [coordinate]
+\tikzstyle{output} = [coordinate]
+\tikzstyle{pinstyle} = [pin edge={to-,thin,black}]
+\tikzstyle{aux} = [coordinate]
+
 \usepackage{pdfpages}
 \usepackage{siunitx}
-
-\newlength{\twosubht}
-\newsavebox{\twosubbox}
-\usepackage{wrapfig}
 \begin{document}
 \input{portada/portada}
 \input{prefacios/prefacio}
@@ -225,7 +231,7 @@ pdfproducer = {pdflatex}
 %
 %
 %%\nocite{*}
-\bibliographystyle{plainurl}
+\bibliographystyle{unsrt}
 \bibliography{bibliografia/bibliografia}\addcontentsline{toc}{chapter}{Bibliografía}
 %
 %\appendix
