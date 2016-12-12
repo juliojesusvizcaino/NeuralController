@@ -15,7 +15,7 @@ Para familiarizarse con las APIs de Baxter, se realizaron algunos programas que 
 
 En las pruebas realizadas, se notó un buen comportamiento del simulador en los controles por posición y velocidad, no así en el control por torques, donde el robot simulado se comportaba sin sentido. Se hizo una versión del controlador PD (sin la componente integradora) que no se comportaba como debía. Dado el comportamiento anómalo del simulador, se decidió probar el programa en el Baxter, descubriendo así el mal funcionamiento del simulador en cuanto a control por torque se refiere.
 
-Una vez familiarizados con el robot y su control, se decide crear un programa que mueva una articulación controlada por torques, mientras que las demás se quedarían quietas (controladas por posición). Desafortunadamente, se descubre que el robot no es capaz de ejecutar este tipo de control híbrido, por lo que es necesario hacer un control por torques del brazo completo. Esto supuso realizar un controlador para las articulaciones que no se mueven. El controlador elegido fue el PID, y tras ajustar los parámetros del mismo, se probó la configuración en el robot.
+Una vez familiarizados con el robot y su control, se decide crear un programa que mueva una articulación controlada por torques, mientras que las demás se quedarían quietas (controladas por posición). Desafortunadamente, se descubre que el robot no es capaz de ejecutar este tipo de control híbrido, por lo que es necesario hacer un control por torques del brazo completo. Esto supuso realizar un controlador para las articulaciones que no se mueven. El controlador elegido fue el PID, y tras ajustar los parámetros del mismo haciendo uso del método del ciclo límite, se probó la configuración en el robot.
 
 El controlador no funcionaba como se esperaba, produciendo muchas micro-oscilaciones y oponiendo poca fuerza al intentar mover el brazo, lo que supondría obtener muestras muy ruidosas de la articulación de la cual se deseaba obtener una base de datos. A partir de las constantes anteriores, se intentaron ajustar los parámetro del PID a mano, haciendo uso de un paquete de \ros que implementa el controlador PID y cuyos parámetros se pueden cambiar sobre la marcha. Los resultados mejoraron, pero seguían sin ser satisfactorios.
 
@@ -105,21 +105,13 @@ A continuación se estudia la viabilidad de la implementación de un controlador
 \subsubsection{Viabilidad}
 El primer problema a enfrentarse es el de demostrar que la red neuronal es capaz de aprender algo de los datos extraídos del controlador del Baxter. Por la capacidad de detectar colisiones sabemos que es un sistema realimentado, posiblemente con un controlador PID.
 
-Se podría realizar un controlador donde el modelo dinámico (controlador anticipativo) fuera desempeñado por la red neuronal, y donde la realimentación fuera desempeñada por el controlador PID. También podría implementarse la realimentación como otra red neuronal, pero ambas aproximaciones tienen el problema de enfrentarse a la realimentación y al tiempo real (a una frecuencia de realimentación de 100Hz). Las redes neuronales profundas tienen el problema de ser pesadas en el cómputo (debido a las no linealidades usadas para la activación de las neuronas), poniendo en riesgo la capacidad de afrontar el problema en tiempo real.
+Se podría realizar un controlador donde el modelo dinámico (controlador anticipativo) fuera desempeñado por la red neuronal, y donde la realimentación fuera desempeñada por el controlador PID. También podría implementarse la realimentación como otra red neuronal, pero ambas aproximaciones tienen el problema de enfrentarse a la realimentación y al tiempo real (a una frecuencia de realimentación de 100 Hz). Las redes neuronales profundas tienen el problema de ser pesadas en el cómputo (debido a las no linealidades usadas para la activación de las neuronas), poniendo en riesgo la capacidad de afrontar el problema en tiempo real.
 
 Es por esto por lo que se decide hacer un controlador sin realimentación, donde los datos de entrada sean posiciones objetivo, posiciones en el momento de iniciar el movimiento, y velocidad objetivo, siendo los de salida una sucesión de torques a aplicar para alcanzar la posición deseada.
 
 Para ello se elige una arquitectura basada en redes neuronales realimentadas, ya que las no realimentadas tienen la limitación de generar la misma salida ante la misma entrada, y siendo nuestra entrada única (debido a que el sistema no es realimentado), generaríamos siempre la misma salida, en vez de la sucesión de torques deseada.
 
-Nos encontramos con el problema de, si el controlador implementado por Baxter es realimentado, ¿puede un modelo no realimentado aprender de este? % Quitar pregunta?
-El controlador del Baxter tiene una estructura como la mostrada en la figura \ref{fig:resultados/feedforward_controller}. El funcionamiento es el siguiente:
-
-\begin{enumerate}
-\item El controlador realimentado genera una señal torque a partir de la realimentación de posición del sistema y la posición deseada.
-\item El controlador anticipativo tiene en cuenta el modelo interno del robot y ajusta la señal de control generada por el controlador realimentado.
-\item Se transmite la señal y el robot genera el torque enviado.
-\item La aplicación genera una nueva posición que es recibido por los sensores y usado para la realimentación.
-\end{enumerate}
+Nos encontramos con el problema de si un modelo no realimentado, puede aprender del implementado por Baxter, que sí lo es. El controlador del Baxter consiste en un controlador mixto, formado por uno realimentado y otro anticipativo.
 
 El controlador realimentado no es más que un sistema (lineal o no) que a ciertas entradas genera ciertas salidas (en función de su historia o no). El controlador anticipativo igualmente es un sistema que tiene en cuenta el modelo dinámico del robot, y por lo tanto los dos sistemas son reproducibles por una red neuronal. Por último, tenemos la realimentación, y es en este aspecto, donde la red neuronal tendrá que aprender a producir estimaciones de la salida provocada (posiciones de las articulaciones) al aplicar los torques.
 
@@ -127,7 +119,82 @@ Por lo tanto, la viabilidad de nuestro controlador depende de la capacidad de la
 
 Es por ello por lo que se utilizarán redes neuronales recurrentes, ya que tanto el controlador realimentado, como el anticipativo, como la realimentación en sí misma son sistemas que dependen de la historia de las señales de las que dependen, y esto es exactamente lo que hacen este tipo de redes.
 
+\subsubsection{Diseño}
+El diseño de la red se ha realizado haciendo uso de la librería \textit{Keras}, que ofrece una capa de abstracción de diseño de redes profundas sobre \textit{Tensorflow}.
+
+El diseño consiste en las siguientes capas, una a continuación de la siguiente:
+
+\begin{enumerate}
+	\item Capa de entrada. Esta capa aceptará matrices de $n$x15, donde $n$ es la cantidad de datos a procesar en cada grupo de entrenamiento, y 15 es el número de dimensiones de entrada (7 de las posiciones deseadas, 7 de las posiciones de inicio, y 1 de la ratio de velocidad deseada).
+	\item Capa de repetición de vector. La entrada consiste en un único conjunto de datos. Sin embargo, se desea obtener una salida con tantos instantes temporales como longitud tenga la secuencia de mayor tamaño, por lo que repetimos el vector de entrada en el tiempo.
+	\item Capa totalmente conectada. La entrada se enlaza con una capa de 64 neuronas con activación relu.
+	\item Dropout. Se realiza una selección de neuronas aleatoriamente haciendo uso de la técnica de dropout, para así regularizar la salida.
+	\item GRU. El número de capas, así como el número de neuronas variará en función del experimento que se esté realizando. La activación es relu, y cuenta con mecanismos de dropout entre las conexiones recurrentes, así como regularización L1 y L2.
+	\item Dropout.
+	\item (Capa de convolución 1D + Dropout). Esta capa se activará o desactivará en función del experimento que se realice.
+	\item 2 capas totalmente interconectadas. De 500 neuronas cada una y activación relu
+	\item Dropout.
+	\item Capa de salida (totalmente interconectada). De tamaño 22 (7 de torque, 7 de posición, 7 de velocidad, y 1 de la máscara).
+\end{enumerate}
+
+Se ha elegido GRU en vez de las celdas LSTM porque requiere de un menor cómputo, y permite hacer más iteraciones en la misma cantidad de tiempo, ofreciendo resultados similares.
+
+La capa de convolucion 1D es un tipo de capa que opera sobre subconjuntos agrupados de entradas. Sirven para extraer dependencias espaciales en el conjunto de datos.
+
+En la capa de salida, se han añadido las posiciones y velocidades obtenidas en cada momento, a fin de que el error generado por las mismas ayude a la red a aprender. Esto se ha realizado porque existe una dependencia entre los torques generados y la velocidad y posición que el brazo obtiene en cada momento. Los valores que realmente nos interesan son los de torque y máscara, por lo que se ha ponderado la aportación de las posiciones y velocidades por 0.1.
+
+La capa de máscara sirve para delimitar la cantidad de torques válidos en cada secuencia. Esta capa es necesaria, ya que cada movimiento es de una longitud temporal distinta. Una vez entrenada la red generaremos torques de longitud variable, y sabremos qué cantidad de esos torque utilizar gracias a esta máscara.
+
+En la fase de compilación del modelo, se ha elegido el optimizador Adam, y el tipo de error empleado ha sido el error absoluto promedio para los torques, y la entropía cruzada para la máscara (que representa la probabilidad de que el torque actual forme parte del movimiento necesario para alcanzar la posición deseada).
+
+\subsubsection{Experimentos}
+Una parte importante en el aprendizaje automático es la modificación y elección de parámetros (como la cantidad de capas, de neuronas por capa, la aportación al error de los métodos de regularización L1 y L2, así como la probabilidad de desactivar una neurona por el método dropout).
+
+Para ello, se dividen los datos en 3:
+
+\begin{itemize}
+	\item Conjunto de entrenamiento. Utilizado para entrenar la red.
+	\item Conjunto de validación. Para obtener una medida del error de la red para cada uno de los parámetro a modificar.
+	\item Conjunto de test. Para obtener una medida independiente de la elección del modelo y los parámetros que indique la eficacia de la red.
+\end{itemize}
+
+El problema de dividir en conjunto de entrenamiento y de validación, es que el error obtenido en el conjunto de validación depende del propio conjunto, y por lo tanto no es una medida totalmente fiable para seleccionar los parámetros. Es por esto por lo que se utiliza la técnica de K-pliegues (K-folding). Esta técnica consiste en realizar la división de un único conjunto (además del conjunto de test) en $k$ subconjuntos. Después se realizará el entrenamiento de la red con todos menos con el un conjunto, y se medirá el error de la red sobre este conjunto. El entrenamiento se realiza excluyendo cada vez un subconjunto diferente (y añadiendo el anterior al conjunto de entrenamiento). Al final del proceso, obtendremos un erro medio, así como una desviación típica de la misma.
+
+En base a los datos obtenidos con este método, se elegirá la red que mejores resultados ofrezca, y se medirá su error sobre el conjunto de test.
+
+Los parámetros probados son:
+
+\begin{itemize}
+	\item GRU.
+	\begin{itemize}
+		\item 2 capas de 100 neuronas cada una.
+		\item 1 capa de 1000 neuronas.
+	\end{itemize}
+	\item Regularización L1/L2.
+	\begin{itemize}
+		\item L1 ó L2 con nivel de regularización 1e-6.
+		\item L1 ó L2 con nivel de regularización 0.001.
+	\end{itemize}
+	\item Dropout.
+	\begin{itemize}
+		\item Probabilidad de anular la neurona: 0.3.
+		\item Probabilidad de anular la neurona: 0.5.
+		\item Probabilidad de anular la neurona: 0.6.
+		\item Probabilidad de anular la neurona: 0.8.
+	\end{itemize}
+	\item Convolución 1D.
+	\begin{itemize}
+		\item Activada.
+		\item Desactivada.
+	\end{itemize}
+\end{itemize}
+\subsubsection{Preparación de los datos}
+Para entrenar la red, hace falta preparar los datos. Esta preparación consiste en dividirlos  en movimientos, normalizarlos (para un entrenamiento más rápido y robusto de la red), e igualar la longitud de las secuencias, ya que Keras necesita que todos los subgrupos que se utilicen para entrenar la red tengan la misma longitud.
+
+También se creará la máscara, que valdrá 1 para todos los valores de torque que no se hayan puesto a 0, y 0 para los valores de relleno. Se utilizará esta máscara para el cálculo del error, ya que de no hacerlo, la red tendría en cuenta los errores cometidos en la sección de relleno.
+
 \section{Resultados}
+A continuación se muestran los resultados obtenidos de la anterior experimentación.
 \subsection{Base de datos}
 Por motivos de tiempo de entrenamiento, así como para aislar potenciales problemas a la hora de realizar el entrenamiento, se han tomado distintas bases de datos.
 
