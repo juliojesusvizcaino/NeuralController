@@ -1,5 +1,12 @@
 \chapter{Conclusiones}
-A continuación se exponen las conclusiones extraídas del proyecto.
+Al trabajar con redes neuronales, se ha aprendido que el diseño de la red es la parte más importante de las mismas. Es necesario conocer las distintas técnicas y recursos necesarios para enfrentarse a los problemas que surgen cuando se trabaja con ellas.
+
+Se ha aprendido que las técnicas de regularización, usadas para prevenir el sobre-entrenamiento requieren de la modificación y elección de parámetros, cuyos valores han de ser elegidos mediante prueba y error, haciendo uso de la técnica de validación cruzada.
+
+Con respecto a los resultados, no son lo buenos que se esperaba. Esto se debe a la naturaleza de los datos, cuyo características siguen un comportamiento dado por la realimentación.
+
+Por último, aún no siendo del todo satisfactorios los resultados, se ha demostrado la capacidad de las redes recursivas de aprender los patrones temporales encontrados en los datos
+
 \section{Trabajo realizado}
 En este trabajo fin de grado se han estudiado nuevos paradigmas de control generados por la necesidad de los mismos, debido a la implantación de robots de baja fuerza en el mercado.
 
@@ -31,6 +38,17 @@ Finalmente, se ha afrontado un proyecto autónomo y se han enfrentado las decisi
 \section{Objetivos alcanzados}
 Al comienzo del trabajo se propusieron los siguientes objetivos:
 
+\begin{enumerate}
+	\item Estudio de los mecanismos de control implementados en el robot biomórfico Baxter.
+	\item Caracterización y obtención de una base de datos de movimientos utilizando los controladores incluidos en el robot.
+	\item Estudio de la viabilidad de implementación de un sistema de control adaptativo basado en técnicas de machine learning.
+\end{enumerate}
 
+Con el trabajo previo realizado, el estudio de los materiales y métodos, y el diseño y experimentación del proyecto se han cumplido cada uno de los objetivos. 
 \section{Trabajo futuro}
 % Crear un módulo en ROS que haga uso del controlador
+Como continuación del trabajo, se podría realizar el entrenamiento en la base de datos donde se registran los movimientos de todas las articulaciones durante 15 segundos a velocidad variable. La metodología de diseño de la red sería la misma.
+
+Por otro lado, durante el presente trabajo se ha centrado la atención en un modelo de aprendizaje llamado supervisado. Este modelo consiste en aprender de los errores a la salida, en nuestro caso, torques. Sin embargo, el objetivo de un controlador es minimizar el error no con respecto a la salida generada, sino con respecto al estado deseado. Este error (error distal) es distinto del error de la señal de control (que es con el que hemos estado trabajando).
+
+Un tipo de aprendizaje distinto, llamado aprendizaje por refuerzo, resuelve esta casuística planteada, por lo que un trabajo futuro, sería entrenar la red siguiendo este modelo. De esta manera, el robot aprendería por si mismo a moverse sobre la marcha, aprendiendo él mismo los valores de la red que minimizan el error distal.
