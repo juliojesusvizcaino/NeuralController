@@ -1,5 +1,40 @@
 \chapter{Diseño experimental y resultados}
 En este capítulo se explicarán las decisiones tomadas en cuanto al diseño del experimento con el fin de alcanzar los objetivos previamente mencionados, así como los resultados obtenidos de dicho experimento.
+\subsection{Trabajo previo}
+En un principio, se quería extraer una base de datos de torques aplicados sobre una sola articulación, manteniendo el resto en una posición fija. A partir de esta base de datos, se diseñaría y entrenaría una red neuronal que aprendiera las posiciones alcanzadas al aplicar una serie de torques durante un intervalo de tiempo. Esta red sería capaz de generar la secuencia de torques a partir de la posición objetivo y la actual, de acuerdo a los datos extraídos en el experimento.
+
+Para ello, en primer lugar se estudiaron las herramientas necesarias para llevar a cabo el proyecto. Estas son: \ros, la API de Baxter y en un principio, el simulador robótico V-REP. Primero se aprendió a usar V-REP, realizando el tutorial que aparece en su manual. Con él se aprendió a realizar un robot con dos ruedas y un sensor de proximidad, capaz de moverse de manera autónoma.
+
+Paralelamente, se estudió \ros haciendo uso del tutorial que ofrece la página web, en el que se aprendió los conceptos de nodo, mensaje, y tema entre otros, así como aprender a usarlos haciendo uso del terminal de linux (bash) y de la librería \textit{rospy}. Se requirió aprender a programar en Python, mientras se aprendían estas otras herramientas.
+
+Una vez estudiados estos temas por separado, se intentó utilizar lo aprendido de \ros sobre la simulación de Baxter que V-REP trae implementada. Desafortunadamente, se descubrió que el simulador no se integraba con \ros, por lo que se estudiaron otros simuladores que sí fueran compatibles.
+
+Se encontró que el propio robot tenía un modelo en el simulador Gazebo, totalmente compatible con los nodos y temas que ejecuta el robot de verdad, y al cual te conectas de la misma manera que lo harías con éste. Por lo tanto, se dedicó un tiempo a estudiar el simulador, aunque ya estaba preparado para probar directamente los experimentos sobre él.
+
+Para familiarizarse con las APIs de Baxter, se realizaron algunos programas que publicaban mensajes a los brazos del robot para controlarlos por posición, velocidad, y torque. También se experimentó con la API de Python y se descubrió en ella una manera mucho más cómoda de comunicarse con el robot.
+
+En las pruebas realizadas, se notó un buen comportamiento del simulador en los controles por posición y velocidad, no así en el control por torques, donde el robot simulado se comportaba sin sentido. Se hizo una versión del controlador PD (sin la componente integradora) que no se comportaba como debía. Dado el comportamiento anómalo del simulador, se decidió probar el programa en el Baxter, descubriendo así el mal funcionamiento del simulador en cuanto a control por torque se refiere.
+
+Una vez familiarizados con el robot y su control, se decide crear un programa que mueva una articulación controlada por torques, mientras que las demás se quedarían quietas (controladas por posición). Desafortunadamente, se descubre que el robot no es capaz de ejecutar este tipo de control híbrido, por lo que es necesario hacer un control por torques del brazo completo. Esto supuso realizar un controlador para las articulaciones que no se mueven. El controlador elegido fue el PID, y tras ajustar los parámetros del mismo, se probó la configuración en el robot.
+
+El controlador no funcionaba como se esperaba, produciendo muchas micro-oscilaciones y oponiendo poca fuerza al intentar mover el brazo, lo que supondría obtener muestras muy ruidosas de la articulación de la cual se deseaba obtener una base de datos. A partir de las constantes anteriores, se intentaron ajustar los parámetro del PID a mano, haciendo uso de un paquete de \ros que implementa el controlador PID y cuyos parámetros se pueden cambiar sobre la marcha. Los resultados mejoraron, pero seguían sin ser satisfactorios.
+
+Se estudiaron técnicas de inteligencia artificial de ajuste de parámetros, como colonias de hormigas, recocido simulado, o algoritmos genéticos. Se implementó el algoritmo de recocido simulado sobre el PID, calculando el error del mismo como el error absoluto medio ponderado en el tiempo de la posición deseada y las recogidas. Pero las muestras eran muy ruidosas, y una misma configuración de parámetros devolvían errores muy distintos, además que, debido a las grandes fuerzas que aplicaba el robot, éste se paraba durante unos minutos, haciendo inviable el aprendizaje con este tipo de algoritmos, que requiere de miles de iteraciones.
+
+Es por esto por lo que se reestructuró el diseño del problema. Si no se era capaz de encontrar un controlador que mantuviese las articulaciones quietas para realizar el experimento, para así tomar muestras de los torques aplicados sobre una articulación y las posiciones a las que llegaba, se aprendería de todos los torques a la vez.
+
+Una alternativa era realizar el mismo experimento que se quería hacer con una articulación, pero con todas a la vez. El problema era que las fuerzas aplicadas moverían el robot de manera que a priori no se puede predecir su movimiento, lo que hacía que fuera peligroso tanto para las personas que trabajaban con él como para el robot mismo. Además, obtener una base de datos de posiciones a las que llega el robot habiendo aplicados ciertos torques se vuelve infinita, ya que a una misma posición se puede llegar de distintas maneras (desde un mismo sitio) a través de distintos recorridos.
+
+Desechada la idea de controlar por torques el robot para obtener una base de datos, se llega a la conclusión de que la manera más segura y viable, es obtener la base de datos a través del control por posición del propio robot. De esta manera, moveremos el brazo de un lugar a otro y registraremos las posiciones por las que pasa, a la velocidad que lo hace, y los torques aplicados para realizar dicho movimiento.
+
+Se estudia realizar un muestreo de todas las dimensiones del espacio. Se estudia el caso en que a cada dimensión le asignamos dos puntos (los dos extremos de su rango). A continuación, se calcula el número de combinaciones entre todos los puntos de las 7 articulaciones. El resultado es 16256 combinaciones posibles. Suponiendo que cada movimiento tarda de media 2 segundos, y que nunca se realiza el mismo movimiento dos veces, se tardan más de 9 horas en recoger esta base de datos, que solo contiene información para realizar movimientos que van desde los extremos de las articulaciones, a otros extremos. Para tres puntos en vez de dos, el número de combinaciones posibles asciende a 4780782, que supongamos 1 segundo por movimiento (los puntos están más cerca entre sí), son 55 días y 8 horas de toma de datos. Esto sin tener en cuenta que, por motivos de seguridad, no se puede dejar el robot funcionando sin supervisión. La fórmula hallada es la siguiente:
+
+$$ combinaciones = 2 * \sum_{i=1}^{dim^n}(dim^n-i) $$
+
+Donde $dim$ es el número de dimensiones (articulaciones) y $n$ el número de puntos por articulación.
+
+Es por esto por lo que se optó por un enfoque probabilístico, donde las posiciones siguientes a las que se llegaría serían elegidas al azar, eligiendo de manera uniforma las posiciones siguientes para cada una de las articulaciones dentro del rango de cada una, tal y como se explica más adelante.
+
 \section{Diseño experimental}
 Una vez estudiados los \hyperref[subsec:metodos/control_baxter]{mecanismos de control del Baxter}, se procederá a extraer una base de datos del control por posición, así como diseñar una red neuronal capaz de aprender de este controlador.
 

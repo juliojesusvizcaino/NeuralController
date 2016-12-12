@@ -508,7 +508,7 @@ Las librerías usadas en este trabajo son \textit{Tensorflow} y \textit{Keras}, 
 \subsubsection{Tensorflow}
 Creada por Google, esta librería se basa en la descripción de la red mediante variables simbólicas. El conjunto de estas variables y las relaciones entre ellas se denominan gráficos. Una vez creados los gráficos, se ejecutan en el contexto de sesiones, ofreciendo así una forma de abstracción con respecto a lo que sucede en los gráficos. Estas sesiones pueden ejecutarse en CPUs, o más eficientemente, en GPUs.
 
-Las gráficas se forman relacionando nodos mediante operaciones con tensores. Un tensor es un vector n-dimensional. Los nodos pueden ser de entrada, constantes, variables, o módulos que implementan operaciones más complejas ya creados, como \texttt{matmul} (multiplicación y suma), o \texttt{Gradient\-Descent\-Optimizer}.
+Las gráficas se forman relacionando nodos mediante operaciones con tensores. Un tensor es un vector n-dimensional. Los nodos pueden ser de entrada, constantes, variables, o módulos que implementan operaciones más complejas ya creados, como \texttt{matmul} (multiplicación de tensores), o \texttt{Gradient\-Descent\-Optimizer}.
 
 A continuación, la gráfica se carga en una sesión, se le ofrecen los valores que necesita (entradas, valores auxiliares) y se le piden los nodos que se necesitan (el de entrenamiento, para que ejecute un paso de descenso en gradiente). Las gráficas, al igual que los datos necesarios para su ejecución, se cargan completamente en la CPU/GPU, de modo que no son necesarias hacer llamadas al sistema para adquirir los recursos, haciendo la computación mucho más rápido.
 \paragraph{Tensorboard}
