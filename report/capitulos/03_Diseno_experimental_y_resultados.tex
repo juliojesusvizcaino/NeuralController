@@ -225,13 +225,13 @@ Como se observa en la figura \ref{fig:resultados/torque_loss_all}, el error de e
 Es la misma configuración la que en el conjunto de validación (fig. \ref{fig:resultados/val_torque_loss_all}) devuelve valores constante en torno a 0.76. Esto significa que la red está siendo infrautilizada, y no está aprendiendo. Lo mismo ocurre para la configuración de dropout igual a 0.6 y los valores de regularización L1 de 0.001 y de 1e-6. Los motivos del nivel de dropout a 0.6 son los mismos que para el nivel 0.8, mientras que el motivo por el cual la regularización L1 no funciona como se espera es que, en este caso, el tener neuronas especializadas a costa de apagar otras no funciona.
 
 \begin{figure}[thb]
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.9\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/resultados/torque_loss_all.png}
 		\caption{Entrenamiento}
 		\label{fig:resultados/torque_loss_all}
 	\end{subfigure}
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.9\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/resultados/val_torque_loss_all.png}
 		\caption{Validación}
@@ -258,13 +258,13 @@ Este fenómeno de sobre-aprendizaje es especialmente notable en la salida de la 
 Es por esto por lo que se decide no tener en cuenta las medidas del error que la máscara genera, y centrar toda la atención en los errores generados por el torque.
 
 \begin{figure}[thb]
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.9\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/resultados/mask_loss_all.png}
 		\caption{Entrenamiento}
 		\label{fig:resultados/mask_loss_all}
 	\end{subfigure}
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.9\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/resultados/val_mask_loss_all.png}
 		\caption{Validación}
@@ -278,13 +278,13 @@ Es por esto por lo que se decide no tener en cuenta las medidas del error que la
 El error total (fig. \ref{fig:resultados/all}) es la suma ponderada de los errores cometidos en los torques, la máscara, la posición y la velocidad. Los dos primeros suman al error multiplicados por 1, mientras que los otros dos multiplican por 0.1. Debido a que el objetivo de la red neuronal es obtener unos torques y una máscara adecuada, se han omitido las gráficas de las otras dos fuentes de errores.
 
 \begin{figure}[thb]
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.9\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/resultados/loss_all.png}
 		\caption{Entrenamiento}
 		\label{fig:resultados/loss_all}
 	\end{subfigure}
-	\begin{subfigure}[b]{0.45\textwidth}
+	\begin{subfigure}[b]{0.9\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/resultados/val_loss_all.png}
 		\caption{Validación}
@@ -298,13 +298,13 @@ El error total (fig. \ref{fig:resultados/all}) es la suma ponderada de los error
 En la figura \ref{fig:resultados/final} se muestran los errores de entrenamiento y validación para cada uno de los subconjuntos usando la técnica de k-fold. La red neuronal elegida es la dicha anteriormente: 1 capa y 1000 neuronas, valor de regularización L2 0.001, dropout 0.5, sin capa convolucional ni error L1.
 
 \begin{figure}[]
-	\begin{subfigure}{0.45\textwidth}
+	\begin{subfigure}{0.9\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/resultados/torque_final.png}
 		\caption{Entrenamiento}
 		\label{fig:resultados/torque_final}
 	\end{subfigure}
-	\begin{subfigure}{0.45\textwidth}
+	\begin{subfigure}{0.9\textwidth}
 		\centering
 		\includegraphics[width=\linewidth]{imagenes/resultados/val_torque_final.png}
 		\caption{Validación}
