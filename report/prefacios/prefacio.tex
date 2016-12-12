@@ -19,12 +19,19 @@ Julio Jesús Vizcaíno Molina\\
 \end{center}
 
 %\vspace{0.7cm}
-\noindent{\textbf{Palabras clave}: robot\_controller, neural\_networks, deep\_learning, baxter\_robot}\\
+\noindent{\textbf{Palabras clave}: control\_robótico, redes\_neuronales, aprendizaje\_profundo, robot\_baxter, ros, modelo\_interno}\\
 
 \vspace{0.7cm}
 \noindent{\textbf{Resumen}}\\
 
-Calcular el modelo dinámico de un brazo robótico es la mejor manera de entender y diseñar un controlador para dicho brazo. Sin embargo, es una tarea complicada que se basa en el conocimiento del funcionamiento del robot, así como de sus características. El controlador que aquí se presenta resuelve estos problemas. Se basa en el auto-aprendizaje del modelo, así como de los parámetros del robot. Para ello hace uso de técnicas de aprendizaje automático (Deep Learning). Estas redes son sistemas de propósito general que parametrizan variables internas en la fase de entrenamiento, para así obtener un modelo concreto al final de esta fase. Este modelo es capaz de desempeñar el papel del controlador empleado para modelarlo sobre datos no visto antes.
+Una nueva generación de robots de baja fuerza está implantándose en la sociedad. Su primer paso lo dan en las industrias donde se requiere la interacción con personas. Este tipo de robots requiere de un control distinto de los usados en los típicos robots industriales de gran fuerza. Para ello, es necesario un conocimiento del modelo interno del robot, de las fuerzas que aplican y los movimientos que éstas generan.
+
+El modelo interno puede analizarse y ajustar los parámetros del mismo con la experimentación, pero es un proceso complejo y dependiente tanto del robot concreto como del estado del mismo. Cualquier cambio realizado en el mismo requerirá un rediseño del mismo.
+
+La opción propuesta en este trabajo consiste en aprender el modelo automáticamente, mediante el uso de técnicas de aprendizaje automático. En concreto, se usarán las técnicas del aprendizaje profundo, el cual consiste en modelos muy complejos que aprenden de los datos que se le entregan, ofreciendo resultados en algunos campos nunca antes obtenidos por otro tipo de algoritmos de aprendizaje automático.
+
+Por otro lado, el desarrollo robótico ha visto en la historia una gran limitación, y es que las implementaciones realizadas para un robot no pueden utilizarse para otros. El sistema operativo para robots \texttt{ROS} ofrece una solución a dicho problema, ya que pone a disposición del desarrollador las herramientas necesarias para crear elementos individuales que después se podrán conectar entre sí.
+
 \cleardoublepage
 
 
@@ -32,19 +39,25 @@ Calcular el modelo dinámico de un brazo robótico es la mejor manera de entende
 
 
 \begin{center}
-{\large\bfseries Neural Controller: Project Subtitle}\\
+{\large\bfseries Neural Controller: Learning schemes of internal robotic arm models with multiple joints}\\
 \end{center}
 \begin{center}
 Julio Jesús Vizcaíno Molina\\
 \end{center}
 
 %\vspace{0.7cm}
-\noindent{\textbf{Keywords}: Keyword1, Keyword2, Keyword3, ....}\\
+\noindent{\textbf{Palabras clave}: robot\_control, neural\_networks, deep\_learning, baxter\_robot, ros, internal\_model}\\
 
 \vspace{0.7cm}
 \noindent{\textbf{Abstract}}\\
 
-Write here the abstract in English.
+A new low force robot generation is arriving. First, they are being implemented in industries where human relation with robots is necessary. This kind of robots require different control systems in order to achieve simylar results than achieved by tipycal high force robots. Thus, it is needed a known internal model of the robot, this is, forces applied by the robot and positions reached with them.
+
+The desired internal model can be extracted by analysing and tuning its parametres with testing, but it is usually a hard and dependent of the robot way. Any change made in the robot will affect to the internal model, and must be redesinged.
+
+This work proposal consists in learning the model automatically, using machine learning techniques. Specifically, it uses deep learning, which state of the art techniques of machine learning. They are very long models capable of learning difficult models only viewing data.
+
+On the other hand, history has shown that robot developing is a low and limited scenary, due to repetition of very hard implementations in each robot created. Each team had to develop all functionalities of the robot from the ground, which is exhausting and doesn't let evolution becomes. Robot Operative System (\texttt{ROS}) is a operative system design to robot development which solves such problems by developing small pieces of code which can be connected with each other.
 
 \chapter*{}
 \thispagestyle{empty}
@@ -101,6 +114,5 @@ Y para que conste, expiden y firman el presente informe en Granada a 12 de Dicie
 
        \vspace{1cm}
 
-
-Poner aquí agradecimientos...
+A mis tutores Jesús, Eva y Eduardo por su paciencia y directrices; a mis padres, que todavía no tienen claro a qué me dedico; a mi hermana y su temor a que los robots controlen el mundo; y a mis amigos, cuyas bromas sobre mi trabajo hacen reír en el momento, y ayudan a seguir adelante cuando las cosas se tuercen.
 
