@@ -20,6 +20,8 @@ from sklearn.preprocessing.data import StandardScaler
 class MyModel(object):
     def __init__(self, train, val, test=None, train_mask=None, val_mask=None, test_mask=None, max_unroll=None,
                  save_dir='save/', log_dir='logs/', img_dir='imgs/', torque_scaler=None, *args, **kwargs):
+        self.joint_names = ['s0', 's1', 'e0', 'e1', 'w0', 'w1', 'w2']
+        self.torque_scaler = torque_scaler
         self.max_unroll = max_unroll if max_unroll is not None else train[1][0].shape[1]
         self.x, self.y = self._set_data(train)
         self.x_val, self.y_val = self._set_data(val)
@@ -30,7 +32,6 @@ class MyModel(object):
         self.set_model(*args, **kwargs)
         self.save_path = save_dir if save_dir[-1] is '/' else save_dir + '/'
         self.img_path = img_dir if img_dir[-1] is '/' else img_dir + '/'
-        self.torque_scaler = torque_scaler
 
         if not os.path.exists(self.save_path):
             os.makedirs(self.save_path)
@@ -39,7 +40,7 @@ class MyModel(object):
 
         save = ModelCheckpoint(self.save_path + '-checkpoint.{epoch:06d}.hdf5')
         tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=10)
-        early_stopping_torque = EarlyStopping(monitor='val_output_torque_loss', patience=5000, min_delta=1e-4)
+        early_stopping_torque = EarlyStopping(monitor='val_output_torque_s0_loss', patience=5000, min_delta=1e-4)
         # early_stopping_val = EarlyStopping(monitor='val_loss', patience=500)
         self.callbacks = [save, tensorboard, early_stopping_torque]
 
@@ -71,15 +72,17 @@ class MyModel(object):
             x = TimeDistributed(Dense(dense_width, activation='relu', init='normal'), name='hidden_' + str(i))(x)
             x = Dropout(dropout_fraction)(x)
 
-        torque_output = TimeDistributed(Dense(7, init='normal'), name='output_torque')(x)
+        torque_outputs = list()
+        for joint in self.joint_names:
+            torque_outputs.append(TimeDistributed(Dense(1, init='normal'), name='output_torque_{}'.format(joint))(x))
         pos_output = TimeDistributed(Dense(7, init='normal'), name='output_pos')(x)
         vel_output = TimeDistributed(Dense(7, init='normal'), name='output_vel')(x)
         mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='output_mask')(x)
 
-        model = Model(input=inputs, output=[torque_output, pos_output, vel_output, mask_output])
+        model = Model(input=inputs, output=torque_outputs + [pos_output, vel_output, mask_output])
         optimizer = Adam(decay=1e-6)
-        model.compile(loss=['mae', 'mae', 'mae', 'binary_crossentropy'], sample_weight_mode='temporal',
-                      loss_weights=[1., 0.1, 0.1, 1.], optimizer=optimizer, **kwargs)
+        model.compile(loss=['mae']*9 + ['binary_crossentropy'], sample_weight_mode='temporal',
+                      loss_weights=self.torque_scaler.scale_.tolist() + [0.1, 0.1, 1.], optimizer=optimizer, **kwargs)
 
         self.model = model
 
@@ -104,14 +107,14 @@ class MyModel(object):
         joint_names = ['s0', 's1', 'e0', 'e1', 'w0', 'w1', 'w2', 'mask']
         f, axs = plt.subplots(8, 1, figsize=(15, 20))
         for inp, outp, outp_aux, plot_name in zip((self.x, self.x_val, self.x_test),
-                                                  (self.y[0], self.y_val[0], self.y_test[0]),
+                                                  (self.y[0:7], self.y_val[0:7], self.y_test[0:7]),
                                                   (self.y[-1], self.y_val[-1], self.y_test[-1]),
                                                   plot_names):
-            out, _, _, out_aux = self.model.predict(inp, batch_size=512)
-            outp = self.torque_scaler.inverse_transform(outp)
-            out = self.torque_scaler.inverse_transform(out)
+            out = self.model.predict(inp, batch_size=512)
+            outp = self.torque_scaler.inverse_transform(np.concatenate(outp, axis=-1))
+            out2 = self.torque_scaler.inverse_transform(np.concatenate(out[:7], axis=-1))
             for row, row_aux, row_out, row_aux_out, index in \
-                    zip(outp, outp_aux, out, out_aux, xrange(len(outp))):
+                    zip(outp, outp_aux, out2, out[-1], xrange(len(outp))):
                 if index % n == 0:
                     for ax, joint, joint_out, joint_name in \
                             zip(axs, np.append(row.T, row_aux.T, axis=0),
@@ -158,7 +161,7 @@ def main():
 
     def prepare_time_data(data):
         data_scaler = StandardScaler()
-        data_concat = np.concatenate([data_ for data_ in data], axis=0)
+        data_concat = np.concatenate(data, axis=0)
         data_scaler.fit(data_concat)
         new_data = [data_scaler.transform(data_) for data_ in data]
 
@@ -207,11 +210,15 @@ def main():
         for width_gru, depth_gru, dropout_fraction, conv, l2_weight, save_name, log_name, img_name in \
                 zip(widths_gru, depths_gru, dropout_fractions, convolution_layer, l2_weights,
                     save_names, log_names, img_names):
-            model = MyModel(train=[this_x, [this_torque, this_pos, this_vel, this_aux]],
-                            val=[this_x_cv, [this_torque_cv, this_pos_cv, this_vel_cv, this_aux_cv]],
-                            train_mask=[this_mask] * 3 + [this_aux_mask],
-                            val_mask=[this_mask_cv] * 3 + [this_aux_mask_cv],
-                            test=[x_test, [torque_test, aux_test]], test_mask=[mask_test, aux_mask_test],
+            div_torque = np.split(this_torque, 7, axis=2)
+            div_torque_cv = np.split(this_torque_cv, 7, axis=2)
+            div_torque_test = np.split(torque_test, 7, axis=2)
+            model = MyModel(train=[this_x, div_torque + [this_pos, this_vel, this_aux]],
+                            val=[this_x_cv, div_torque_cv + [this_pos_cv, this_vel_cv, this_aux_cv]],
+                            test=[x_test, div_torque_test + [pos_test, vel_test, aux_test]],
+                            train_mask=[this_mask] * 9 + [this_aux_mask],
+                            val_mask=[this_mask_cv] * 9 + [this_aux_mask_cv],
+                            test_mask=[mask_test] * 9 + [aux_mask_test],
                             max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
                             width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2,
                             torque_scaler=effort_scaler, conv=conv, dropout_fraction=dropout_fraction,
