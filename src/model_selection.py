@@ -75,14 +75,13 @@ class MyModel(object):
         torque_outputs = list()
         for joint in self.joint_names:
             torque_outputs.append(TimeDistributed(Dense(1, init='normal'), name='output_torque_{}'.format(joint))(x))
-        pos_output = TimeDistributed(Dense(7, init='normal'), name='output_pos')(x)
-        vel_output = TimeDistributed(Dense(7, init='normal'), name='output_vel')(x)
         mask_output = TimeDistributed(Dense(1, activation='sigmoid', init='normal'), name='output_mask')(x)
 
-        model = Model(input=inputs, output=torque_outputs + [pos_output, vel_output, mask_output])
+        model = Model(input=inputs, output=torque_outputs + [mask_output])
+        scale = self.torque_scaler.scale_
         optimizer = Adam(decay=1e-6)
-        model.compile(loss=['mae']*9 + ['binary_crossentropy'], sample_weight_mode='temporal',
-                      loss_weights=self.torque_scaler.scale_.tolist() + [0.1, 0.1, 1.], optimizer=optimizer, **kwargs)
+        model.compile(loss=['mae']*7 + ['binary_crossentropy'], sample_weight_mode='temporal',
+                      loss_weights=(scale/np.max(scale)).tolist() + [1.], optimizer=optimizer, **kwargs)
 
         self.model = model
 
@@ -213,12 +212,12 @@ def main():
             div_torque = np.split(this_torque, 7, axis=2)
             div_torque_cv = np.split(this_torque_cv, 7, axis=2)
             div_torque_test = np.split(torque_test, 7, axis=2)
-            model = MyModel(train=[this_x, div_torque + [this_pos, this_vel, this_aux]],
-                            val=[this_x_cv, div_torque_cv + [this_pos_cv, this_vel_cv, this_aux_cv]],
-                            test=[x_test, div_torque_test + [pos_test, vel_test, aux_test]],
-                            train_mask=[this_mask] * 9 + [this_aux_mask],
-                            val_mask=[this_mask_cv] * 9 + [this_aux_mask_cv],
-                            test_mask=[mask_test] * 9 + [aux_mask_test],
+            model = MyModel(train=[this_x, div_torque + [this_aux]],
+                            val=[this_x_cv, div_torque_cv + [this_aux_cv]],
+                            test=[x_test, div_torque_test + [aux_test]],
+                            train_mask=[this_mask] * 7 + [this_aux_mask],
+                            val_mask=[this_mask_cv] * 7 + [this_aux_mask_cv],
+                            test_mask=[mask_test] * 7 + [aux_mask_test],
                             max_unroll=n_rollout, save_dir=save_name, log_dir=log_name, img_dir=img_name,
                             width_gru=width_gru, depth_gru=depth_gru, width_dense=50, depth_dense=2,
                             torque_scaler=effort_scaler, conv=conv, dropout_fraction=dropout_fraction,
